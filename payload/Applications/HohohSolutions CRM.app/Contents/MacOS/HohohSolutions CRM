@@ -1,0 +1,82 @@
+#!/bin/bash
+# HohohSolutions CRM — macOS Launcher
+# Serveert de gebouwde webapp via http://127.0.0.1 — browsers weigeren localStorage op file://
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_DIR="$(dirname "$DIR")"
+RESOURCES="$APP_DIR/Resources"
+BASE_PORT="${HOHOH_CRM_PORT:-38471}"
+
+if [ ! -f "$RESOURCES/index.html" ] && [ ! -f "$RESOURCES/HohohSolutions-CRM.html" ]; then
+  osascript -e 'display alert "HohohSolutions CRM" message "De webapp (index.html) kon niet worden gevonden in de app." as critical'
+  exit 1
+fi
+
+if ! command -v python3 &>/dev/null; then
+  osascript -e 'display alert "HohohSolutions CRM" message "Python 3 ontbreekt (nodig voor lokale weergave). Installeer: xcode-select --install" as critical'
+  exit 1
+fi
+
+crm_url() {
+  local p="$1"
+  if [ -f "$RESOURCES/index.html" ]; then
+    echo "http://127.0.0.1:${p}/"
+  else
+    echo "http://127.0.0.1:${p}/HohohSolutions-CRM.html"
+  fi
+}
+
+server_up() {
+  local p="$1"
+  curl -sf -o /dev/null -m 1 "$(crm_url "$p")" 2>/dev/null
+}
+
+start_server_bg() {
+  local p="$1"
+  (
+    cd "$RESOURCES" || exit 1
+    python3 -m http.server "$p" --bind 127.0.0.1 2>/dev/null || python3 -m http.server "$p"
+  ) >/dev/null 2>&1 &
+  disown 2>/dev/null || true
+}
+
+first_run_notify() {
+  local prefs="$HOME/Library/Preferences/com.hohohsolutions.crm.plist"
+  if [ ! -f "$prefs" ]; then
+    defaults write com.hohohsolutions.crm firstRun -bool true
+    osascript -e 'display notification "HohohSolutions CRM is gestart in je browser." with title "HohohSolutions CRM" subtitle "Welkom!" sound name "Glass"' 2>/dev/null || true
+  fi
+}
+
+# Bestaande server hergebruiken (zelfde poortbereik)
+p=$BASE_PORT
+while [ "$p" -le $((BASE_PORT + 15)) ]; do
+  if server_up "$p"; then
+    open "$(crm_url "$p")"
+    first_run_notify
+    exit 0
+  fi
+  p=$((p + 1))
+done
+
+# Nieuwe server op eerste vrije poort
+p=$BASE_PORT
+while [ "$p" -le $((BASE_PORT + 15)) ]; do
+  if lsof -iTCP:"$p" -sTCP:LISTEN -P -n >/dev/null 2>&1; then
+    p=$((p + 1))
+    continue
+  fi
+  start_server_bg "$p"
+  for _ in $(seq 1 40); do
+    if server_up "$p"; then
+      open "$(crm_url "$p")"
+      first_run_notify
+      exit 0
+    fi
+    sleep 0.12
+  done
+  p=$((p + 1))
+done
+
+osascript -e 'display alert "HohohSolutions CRM" message "Kon geen lokale server starten (poorten bezet of geblokkeerd)." as critical'
+exit 1

@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0e0e10">
+<title>HohohSolutions CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+<!-- Sidebar overlay (mobiel) -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar" id="sidebar">
+  <div class="logo">
+    <div class="logo-wordmark">
+      <span class="logo-hohoh">Hohoh</span><span class="logo-solutions">Solutions</span>
+    </div>
+    <div class="logo-crm-pill">CRM Platform</div>
+  </div>
+  <div class="nav">
+    <div class="nav-label">Overzicht</div>
+    <button class="nav-item active" onclick="showPage('dashboard')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </button>
+
+    <div class="nav-label">Beheer</div>
+    <button class="nav-item" onclick="showPage('klanten')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Klanten
+      <span class="nav-badge" id="badge-klanten">0</span>
+    </button>
+    <button class="nav-item" onclick="showPage('projecten')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      Projecten
+      <span class="nav-badge" id="badge-projecten">0</span>
+    </button>
+    <button class="nav-item" onclick="showPage('taken')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Taken
+      <span class="nav-badge" id="badge-taken">0</span>
+    </button>
+    <button class="nav-item" onclick="showPage('todo')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      To-Do Lijsten
+      <span class="nav-badge" id="badge-todo">0</span>
+    </button>
+    <button class="nav-item" onclick="showPage('meetings')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Meeting Notities
+      <span class="nav-badge" id="badge-meetings">0</span>
+    </button>
+
+    <div class="nav-label">Financieel</div>
+    <button class="nav-item" onclick="showPage('facturen')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Facturen
+    </button>
+
+    <div class="nav-label">Planning</div>
+    <button class="nav-item" onclick="showPage('tijdlijn')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><path d="M7 12h10"/><path d="M5 18h8"/></svg>
+      Tijdlijn
+    </button>
+    <button class="nav-item" onclick="showPage('roadmap')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>
+      Roadmap
+    </button>
+
+    <div class="nav-label">Technisch</div>
+    <button class="nav-item" onclick="showPage('apilog')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      API & Tools
+    </button>
+
+    <div class="nav-label">Agenda</div>
+    <button class="nav-item" onclick="showPage('agenda')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Agenda & Afspraken
+    </button>
+
+    <div style="flex:1"></div>
+    <div class="nav-label">Data</div>
+    <button class="nav-item" onclick="exportData()">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Exporteer JSON
+    </button>
+    <button class="nav-item" onclick="importClick()">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Importeer
+    </button>
+    <input type="file" id="import-input" accept=".json" style="display:none" onchange="importData(event)">
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+    <div class="page-title" id="topbar-title">Dashboard</div>
+    <div class="topbar-actions">
+      <input class="search-box" type="text" placeholder="Zoeken..." oninput="globalSearch(this.value)" id="global-search">
+      <button class="btn btn-primary" id="add-btn" onclick="openAddModal()">+ Toevoegen</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Actieve klanten</div>
+        <div class="stat-value" id="stat-klanten">0</div>
+        <div class="stat-sub">totaal in systeem</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Lopende projecten</div>
+        <div class="stat-value" id="stat-projecten">0</div>
+        <div class="stat-sub">in uitvoering</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Open taken</div>
+        <div class="stat-value" id="stat-taken">0</div>
+        <div class="stat-sub">nog te doen</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Openstaand</div>
+        <div class="stat-value" id="stat-facturen">€0</div>
+        <div class="stat-sub">onbetaalde facturen</div>
+      </div>
+    </div>
+
+    <div class="two-col section-gap">
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">Recente klanten</div>
+        </div>
+        <div class="recent-list" id="recent-klanten"></div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">Open taken</div>
+        </div>
+        <div id="dash-taken"></div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-header">
+        <div class="table-title">Recente projecten</div>
+      </div>
+      <div class="recent-list" id="recent-projecten"></div>
+    </div>
+  </div>
+
+  <!-- KLANTEN -->
+  <div class="page" id="page-klanten">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Klanten</div>
+        <div class="section-sub">Alle klanten en contactpersonen</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Naam</th>
+            <th>Bedrijf</th>
+            <th>Email</th>
+            <th>Status</th>
+            <th>Sector</th>
+            <th>Projecten</th>
+            <th>Toegevoegd</th>
+          </tr>
+        </thead>
+        <tbody id="klanten-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PROJECTEN -->
+  <div class="page" id="page-projecten">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Projecten</div>
+        <div class="section-sub">Alle projecten per klant</div>
+      </div>
+      <div class="tabs" id="project-tabs">
+        <button class="tab active" onclick="filterProjecten('alle', this)">Alle</button>
+        <button class="tab" onclick="filterProjecten('actief', this)">Actief</button>
+        <button class="tab" onclick="filterProjecten('voltooid', this)">Voltooid</button>
+        <button class="tab" onclick="filterProjecten('pauze', this)">Pauze</button>
+      </div>
+    </div>
+    <div class="cards-grid" id="projecten-grid"></div>
+  </div>
+
+  <!-- TAKEN -->
+  <div class="page" id="page-taken">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Taken</div>
+        <div class="section-sub">Projectgebonden acties en to-do's</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <div id="taken-list"></div>
+    </div>
+  </div>
+
+  <!-- TODO LIJSTEN -->
+  <div class="page" id="page-todo">
+    <div class="section-head" style="margin-bottom:16px">
+      <div>
+        <div class="section-title">To-Do Lijsten</div>
+        <div class="section-sub">Persoonlijke en teamlijsten — onafhankelijk van projecten</div>
+      </div>
+    </div>
+    <div class="todo-layout">
+      <!-- Sidebar: lijsten -->
+      <div class="todo-sidebar">
+        <div class="todo-sidebar-head">
+          <div class="todo-sidebar-title">Mijn lijsten</div>
+          <button class="btn btn-primary" style="padding:5px 10px;font-size:12px" onclick="addTodoList()">+</button>
+        </div>
+        <div id="todo-lists-sidebar" style="overflow-y:auto;flex:1"></div>
+        <div style="padding:12px">
+          <button class="btn btn-ghost" style="width:100%;font-size:12px" onclick="addTodoList()">
+            + Nieuwe lijst
+          </button>
+        </div>
+      </div>
+      <!-- Main: items -->
+      <div class="todo-main">
+        <div id="todo-main-content">
+          <div class="todo-empty">
+            <div style="font-size:40px;opacity:0.3;margin-bottom:10px">☑</div>
+            <div style="font-size:14px;font-weight:700;color:var(--text2)">Selecteer of maak een lijst</div>
+            <div style="font-size:12px;margin-top:4px">Klik op een lijst links om te beginnen</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MEETING NOTITIES -->
+  <div class="page" id="page-meetings">
+    <div class="section-head" style="margin-bottom:16px">
+      <div>
+        <div class="section-title">Meeting Notities</div>
+        <div class="section-sub">Verslagen, actiepunten en agenda's per vergadering</div>
+      </div>
+    </div>
+    <div class="meeting-layout">
+      <!-- Sidebar: meetings -->
+      <div class="meeting-sidebar">
+        <div class="meeting-sidebar-head">
+          <div style="font-size:13px;font-weight:700">Vergaderingen</div>
+          <button class="btn btn-primary" style="padding:5px 10px;font-size:12px" onclick="addMeeting()">+</button>
+        </div>
+        <div style="padding:8px">
+          <input class="search-box" style="width:100%" placeholder="Zoeken..." oninput="filterMeetings(this.value)" id="meeting-search">
+        </div>
+        <div class="meeting-items-list" id="meetings-sidebar-list"></div>
+      </div>
+      <!-- Main: meeting detail -->
+      <div class="meeting-main" id="meeting-main">
+        <div class="meeting-empty">
+          <div class="meeting-empty-icon">📋</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text2)">Selecteer een vergadering</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:4px">Of maak een nieuwe aan</div>
+          <button class="btn btn-primary" style="margin-top:16px" onclick="addMeeting()">+ Nieuwe vergadering</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FACTUREN -->
+  <div class="page" id="page-facturen">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Facturen</div>
+        <div class="section-sub">Volledig financieel beheer</div>
+      </div>
+    </div>
+
+    <!-- Financiële stats -->
+    <div class="stats-grid" style="margin-bottom:20px">
+      <div class="stat-card">
+        <div class="stat-label">Totaal gefactureerd</div>
+        <div class="stat-value" id="fstat-totaal">€0</div>
+        <div class="stat-sub">alle facturen samen</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Openstaand</div>
+        <div class="stat-value" id="fstat-open" style="color:var(--amber)">€0</div>
+        <div class="stat-sub">nog te ontvangen</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Betaald</div>
+        <div class="stat-value" id="fstat-betaald" style="color:var(--green)">€0</div>
+        <div class="stat-sub">dit jaar ontvangen</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Vervallen</div>
+        <div class="stat-value" id="fstat-vervallen" style="color:var(--red)">€0</div>
+        <div class="stat-sub">te laat betaald</div>
+      </div>
+    </div>
+
+    <!-- Tabs + filter -->
+    <div class="section-head" style="margin-bottom:14px">
+      <div class="tabs" id="fac-tabs">
+        <button class="tab active" onclick="filterFacturen('alle',this)">Alle</button>
+        <button class="tab" onclick="filterFacturen('voorschot',this)">Voorschot</button>
+        <button class="tab" onclick="filterFacturen('factuur',this)">Factuur</button>
+        <button class="tab" onclick="filterFacturen('creditnota',this)">Creditnota</button>
+        <button class="tab" onclick="filterFacturen('openstaand',this)">Openstaand</button>
+        <button class="tab" onclick="filterFacturen('vervallen',this)">Vervallen</button>
+      </div>
+      <select class="gantt-select" id="fac-klant-filter" onchange="renderFacturen()">
+        <option value="">Alle klanten</option>
+      </select>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nummer</th>
+            <th>Type</th>
+            <th>Klant</th>
+            <th>Omschrijving</th>
+            <th>Excl. BTW</th>
+            <th>BTW</th>
+            <th>Totaal</th>
+            <th>Datum</th>
+            <th>Vervaldag</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="facturen-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TIJDLIJN -->
+  <div class="page" id="page-tijdlijn">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Tijdlijn</div>
+        <div class="section-sub">Visuele Gantt-planning van alle projecten</div>
+      </div>
+    </div>
+    <div class="gantt-controls">
+      <select class="gantt-select" id="gantt-zoom" onchange="renderTijdlijn()">
+        <option value="6">6 maanden</option>
+        <option value="9">9 maanden</option>
+        <option value="12" selected>12 maanden</option>
+        <option value="18">18 maanden</option>
+        <option value="24">24 maanden</option>
+      </select>
+      <select class="gantt-select" id="gantt-klant" onchange="renderTijdlijn()">
+        <option value="">Alle klanten</option>
+      </select>
+      <select class="gantt-select" id="gantt-status" onchange="renderTijdlijn()">
+        <option value="">Alle statussen</option>
+        <option value="actief">Actief</option>
+        <option value="pauze">Pauze</option>
+        <option value="voltooid">Voltooid</option>
+        <option value="concept">Concept</option>
+      </select>
+    </div>
+    <div class="table-wrap gantt-wrap" id="gantt-container"></div>
+  </div>
+
+  <!-- ROADMAP -->
+  <div class="page" id="page-roadmap">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Roadmap</div>
+        <div class="section-sub">Mijlpalen en leveringen per project</div>
+      </div>
+    </div>
+    <div class="roadmap-selector">
+      <select class="gantt-select" id="rm-project-select" onchange="renderRoadmap()">
+        <option value="">— Kies een project —</option>
+      </select>
+      <button class="btn btn-primary" id="rm-add-milestone-btn" onclick="addMilestone()" style="display:none">+ Mijlpaal</button>
+    </div>
+    <div class="roadmap-body" id="roadmap-body">
+      <div class="empty">
+        <div class="empty-icon">◉</div>
+        <div class="empty-text">Selecteer een project</div>
+        <div class="empty-sub">Kies een project om de roadmap te bekijken of aan te maken</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- API LOG -->
+  <div class="page" id="page-apilog">
+    <div class="section-head">
+      <div>
+        <div class="section-title">API & Tools</div>
+        <div class="section-sub">Alle integraties per klant</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <div id="api-list"></div>
+    </div>
+  </div>
+
+  <!-- AGENDA -->
+  <div class="page" id="page-agenda">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Agenda &amp; Afspraken</div>
+        <div class="section-sub">Klik op een dag om een afspraak toe te voegen</div>
+      </div>
+    </div>
+    <div class="agenda-layout">
+      <div>
+        <div class="cal-wrap">
+          <div class="cal-nav">
+            <button class="cal-btn" onclick="calPrev()">‹</button>
+            <div class="cal-month-title" id="cal-title"></div>
+            <button class="cal-btn" onclick="calNext()">›</button>
+          </div>
+          <div class="cal-grid" id="cal-grid"></div>
+        </div>
+      </div>
+      <div class="agenda-side">
+        <div class="table-wrap" style="padding:16px 20px">
+          <div class="agenda-date-title" id="agenda-day-title">Selecteer een dag</div>
+          <div id="agenda-day-list"><div style="color:var(--text3);font-size:13px">Klik op een dag in de kalender</div></div>
+          <button type="button" class="btn btn-primary" style="margin-top:14px;width:100%" onclick="openAddAfspraakModal()">+ Afspraak toevoegen</button>
+        </div>
+        <div class="table-wrap" style="padding:16px 20px">
+          <div style="font-size:13px;font-weight:700;margin-bottom:14px">Aankomende afspraken</div>
+          <div id="agenda-upcoming"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV (mobiel) -->
+<nav class="bottom-nav" id="bottom-nav">
+  <div class="bottom-nav-inner">
+    <button class="bottom-nav-item active" onclick="showPage('dashboard');setBottomNav(this)" data-page="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Home
+    </button>
+    <button class="bottom-nav-item" onclick="showPage('klanten');setBottomNav(this)" data-page="klanten">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      Klanten
+    </button>
+    <button class="bottom-nav-item" onclick="showPage('projecten');setBottomNav(this)" data-page="projecten">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      Projecten
+    </button>
+    <button class="bottom-nav-item" onclick="showPage('todo');setBottomNav(this)" data-page="todo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      To-Do
+    </button>
+    <button class="bottom-nav-item" onclick="toggleSidebar()" id="bottom-more-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+      Meer
+    </button>
+  </div>
+</nav>
+
+<!-- PROJECT ARCHITECTUUR -->
+<div class="proj-arch-overlay" id="proj-arch-overlay">
+  <div class="proj-arch-topbar">
+    <button class="proj-arch-back" onclick="closeProjectArch()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Terug naar projecten
+    </button>
+    <div class="proj-arch-title" id="proj-arch-title">Project</div>
+    <div id="proj-arch-status"></div>
+    <div id="proj-arch-client" style="font-size:12px;color:var(--text3)"></div>
+    <button class="btn btn-primary" onclick="saveProjectNotes()" id="proj-save-btn" style="display:none">Opslaan</button>
+  </div>
+
+  <div class="proj-arch-tabs">
+    <button class="proj-arch-tab active" onclick="switchArchTab('overview',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Overzicht
+    </button>
+    <button class="proj-arch-tab" onclick="switchArchTab('kanban',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="8" rx="1"/></svg>
+      Kanban
+    </button>
+    <button class="proj-arch-tab" onclick="switchArchTab('roadmap',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>
+      Roadmap
+    </button>
+    <button class="proj-arch-tab" onclick="switchArchTab('tijdlijn',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><path d="M7 12h10"/><path d="M5 18h8"/></svg>
+      Tijdlijn
+    </button>
+    <button class="proj-arch-tab" onclick="switchArchTab('tech',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      Tech Stack
+    </button>
+    <button class="proj-arch-tab" onclick="switchArchTab('bestanden',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      Bestanden & Links
+    </button>
+    <button class="proj-arch-tab" onclick="switchArchTab('notities',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Notities
+    </button>
+    <button class="proj-arch-tab" onclick="switchArchTab('facturen',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Facturen
+    </button>
+  </div>
+
+  <div class="proj-arch-body">
+    <!-- OVERZICHT -->
+    <div class="proj-arch-panel active" id="arch-panel-overview">
+      <div class="proj-overview-grid" id="arch-stats"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:12px">Project details</div>
+          <div class="table-wrap" style="padding:0"><div id="arch-details"></div></div>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:12px">Recente activiteit</div>
+          <div class="table-wrap" style="padding:0"><div class="mini-timeline" id="arch-timeline-mini"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KANBAN -->
+    <div class="proj-arch-panel" id="arch-panel-kanban">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-size:13px;font-weight:700">Takenbord</div>
+        <button class="btn btn-primary" onclick="addKanbanTask()">+ Taak</button>
+      </div>
+      <div class="kanban-board" id="arch-kanban"></div>
+    </div>
+
+    <!-- ROADMAP -->
+    <div class="proj-arch-panel" id="arch-panel-roadmap">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-size:13px;font-weight:700">Roadmap & Mijlpalen</div>
+        <button class="btn btn-primary" onclick="addArchMilestone()">+ Mijlpaal</button>
+      </div>
+      <div id="arch-roadmap-body"></div>
+    </div>
+
+    <!-- TIJDLIJN -->
+    <div class="proj-arch-panel" id="arch-panel-tijdlijn">
+      <div style="font-size:13px;font-weight:700;margin-bottom:16px">Projecttijdlijn</div>
+      <div id="arch-tijdlijn-body"></div>
+    </div>
+
+    <!-- TECH STACK -->
+    <div class="proj-arch-panel" id="arch-panel-tech">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-size:13px;font-weight:700">Technologieën & Tools</div>
+        <button class="btn btn-primary" onclick="addTechItem()">+ Technologie</button>
+      </div>
+      <div class="tech-grid" id="arch-tech-grid"></div>
+    </div>
+
+    <!-- BESTANDEN -->
+    <div class="proj-arch-panel" id="arch-panel-bestanden">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-size:13px;font-weight:700">Bestanden & Links</div>
+        <button class="btn btn-primary" onclick="addBestand()">+ Toevoegen</button>
+      </div>
+      <div class="table-wrap">
+        <div id="arch-bestanden-list"></div>
+      </div>
+    </div>
+
+    <!-- NOTITIES -->
+    <div class="proj-arch-panel" id="arch-panel-notities">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:700">Projectnotities</div>
+        <button class="btn btn-primary" onclick="saveProjectNotes()">Opslaan</button>
+      </div>
+      <textarea class="notes-area" id="arch-notes-area" placeholder="Schrijf hier vrije notities, technische beslissingen, afspraken, links...&#10;&#10;Ondersteunt gewone tekst."></textarea>
+    </div>
+
+    <!-- FACTUREN TAB -->
+    <div class="proj-arch-panel" id="arch-panel-facturen">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-size:13px;font-weight:700">Facturen voor dit project</div>
+        <button class="btn btn-primary" onclick="openModal('modal-factuur')">+ Factuur</button>
+      </div>
+      <div class="table-wrap"><div id="arch-facturen-list"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL PANEL -->
+<div class="detail-panel" id="detail-panel">
+  <div class="detail-head">
+    <div class="modal-title" id="detail-title">Detail</div>
+    <button class="modal-close" onclick="closeDetail()">✕</button>
+  </div>
+  <div class="detail-body" id="detail-body"></div>
+</div>
+
+<!-- MODAL: KLANT -->
+<div class="modal-overlay" id="modal-klant">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="modal-klant-title">Nieuwe klant</div>
+      <button class="modal-close" onclick="closeModal('modal-klant')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Voornaam</label><input id="k-voornaam" placeholder="Jan"></div>
+        <div class="form-group"><label>Achternaam</label><input id="k-achternaam" placeholder="Jansen"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Bedrijf</label><input id="k-bedrijf" placeholder="Jansen BVBA"></div>
+        <div class="form-group"><label>BTW-nummer</label><input id="k-btw" placeholder="BE0123456789"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Email</label><input id="k-email" type="email" placeholder="jan@jansen.be"></div>
+        <div class="form-group"><label>Telefoon</label><input id="k-tel" placeholder="+32 ..."></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Sector</label><input id="k-sector" placeholder="E-commerce, Tech..."></div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="k-status">
+            <option value="actief">Actief</option>
+            <option value="prospect">Prospect</option>
+            <option value="inactief">Inactief</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group full"><label>Adres</label><input id="k-adres" placeholder="Straat 1, 1000 Brussel"></div>
+      <div class="form-group full"><label>Website</label><input id="k-website" placeholder="https://..."></div>
+      <div class="form-group full"><label>Notities</label><textarea id="k-notities" placeholder="Extra info over deze klant..."></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-klant')">Annuleer</button>
+      <button class="btn btn-primary" onclick="saveKlant()">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: PROJECT -->
+<div class="modal-overlay" id="modal-project">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Nieuw project</div>
+      <button class="modal-close" onclick="closeModal('modal-project')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Projectnaam</label><input id="p-naam" placeholder="Webshop redesign"></div>
+        <div class="form-group">
+          <label>Klant</label>
+          <select id="p-klant"></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Status</label>
+          <select id="p-status">
+            <option value="actief">Actief</option>
+            <option value="pauze">Pauze</option>
+            <option value="voltooid">Voltooid</option>
+            <option value="concept">Concept</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Budget (€)</label>
+          <input id="p-budget" type="number" placeholder="2500">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Startdatum</label><input id="p-start" type="date"></div>
+        <div class="form-group"><label>Deadline</label><input id="p-deadline" type="date"></div>
+      </div>
+      <div class="form-group full"><label>Voortgang (%)</label><input id="p-progress" type="number" min="0" max="100" placeholder="0"></div>
+      <div class="form-group full"><label>Beschrijving</label><textarea id="p-desc" placeholder="Beschrijving van het project..."></textarea></div>
+      <div class="form-group full"><label>Tags (komma-gescheiden)</label><input id="p-tags" placeholder="React, API, Design"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-project')">Annuleer</button>
+      <button class="btn btn-primary" onclick="saveProject()">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: TAAK -->
+<div class="modal-overlay" id="modal-taak">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Nieuwe taak</div>
+      <button class="modal-close" onclick="closeModal('modal-taak')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group full"><label>Taakomschrijving</label><input id="t-naam" placeholder="Beschrijf de taak..."></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Klant</label>
+          <select id="t-klant"><option value="">— Geen —</option></select>
+        </div>
+        <div class="form-group">
+          <label>Project</label>
+          <select id="t-project"><option value="">— Geen —</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Prioriteit</label>
+          <select id="t-prio">
+            <option value="normaal">Normaal</option>
+            <option value="hoog">Hoog</option>
+            <option value="laag">Laag</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Deadline</label><input id="t-deadline" type="date"></div>
+      </div>
+      <div class="form-group full"><label>Notitie</label><textarea id="t-note" placeholder="Extra info..."></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-taak')">Annuleer</button>
+      <button class="btn btn-primary" onclick="saveTaak()">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: FACTUUR -->
+<div class="modal-overlay" id="modal-factuur">
+  <div class="modal" style="width:640px">
+    <div class="modal-head">
+      <div class="modal-title" id="modal-factuur-title">Nieuwe factuur</div>
+      <button class="modal-close" onclick="closeModal('modal-factuur')">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Type + nummer -->
+      <div class="form-row">
+        <div class="form-group">
+          <label>Type document</label>
+          <select id="f-type" onchange="updateFactuurType()">
+            <option value="factuur">Factuur</option>
+            <option value="voorschot">Voorschotfactuur</option>
+            <option value="creditnota">Creditnota</option>
+            <option value="offerte">Offerte / Bestelbon</option>
+            <option value="pro-forma">Pro-forma factuur</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Nummer</label><input id="f-num" placeholder="2026-001"></div>
+      </div>
+
+      <!-- Klant + project -->
+      <div class="form-row">
+        <div class="form-group"><label>Klant</label><select id="f-klant"></select></div>
+        <div class="form-group"><label>Project (optioneel)</label><select id="f-project"><option value="">— Geen —</option></select></div>
+      </div>
+
+      <!-- Omschrijving -->
+      <div class="form-group full"><label>Omschrijving</label><input id="f-desc" placeholder="Diensten maart 2026, Voorschot fase 1..."></div>
+
+      <!-- Lijnen -->
+      <div style="margin-bottom:4px">
+        <label>Factuurlijnen</label>
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:4px">
+        <div style="display:grid;grid-template-columns:1fr 80px 90px 90px 36px;gap:0;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:0.5px;padding:8px 10px;border-bottom:1px solid var(--border)">
+          <span>Omschrijving</span><span style="text-align:right">Aantal</span><span style="text-align:right">Prijs</span><span style="text-align:right">Subtotaal</span><span></span>
+        </div>
+        <div id="fac-lines"></div>
+        <div style="padding:8px 10px">
+          <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px" onclick="addFacLine()">+ Lijn toevoegen</button>
+        </div>
+      </div>
+
+      <!-- Totalen box -->
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;flex-direction:column;gap:6px;margin-bottom:4px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2)">
+          <span>Subtotaal excl. BTW</span><span id="f-sub-display" style="font-family:'JetBrains Mono',monospace">€ 0,00</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text2)">
+          <span>BTW</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <select id="f-btw" onchange="updateFacTotals()" style="padding:3px 6px;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);outline:none">
+              <option value="0">0%</option>
+              <option value="6">6%</option>
+              <option value="12">12%</option>
+              <option value="21" selected>21%</option>
+            </select>
+            <span id="f-btw-display" style="font-family:'JetBrains Mono',monospace">€ 0,00</span>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;border-top:1px solid var(--border);padding-top:8px;margin-top:2px">
+          <span>Totaal incl. BTW</span><span id="f-tot-display" style="font-family:'JetBrains Mono',monospace;color:var(--accent)">€ 0,00</span>
+        </div>
+        <!-- Voorschot veld -->
+        <div id="f-voorschot-row" style="display:none;justify-content:space-between;align-items:center;font-size:12px;color:var(--text2);border-top:1px solid var(--border);padding-top:8px;margin-top:2px">
+          <span>Voorschot % van totaal</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input id="f-voorschot-pct" type="number" min="1" max="100" value="30" oninput="updateFacTotals()"
+              style="width:60px;padding:3px 6px;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);text-align:right">
+            <span>%</span>
+            <span id="f-voorschot-display" style="font-family:'JetBrains Mono',monospace;color:var(--amber);min-width:70px;text-align:right">€ 0,00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Datums + betalingstermijn -->
+      <div class="form-row">
+        <div class="form-group"><label>Datum</label><input id="f-datum" type="date"></div>
+        <div class="form-group">
+          <label>Betalingstermijn</label>
+          <select id="f-termijn" onchange="calcVervaldag()">
+            <option value="0">Onmiddellijk</option>
+            <option value="7">7 dagen</option>
+            <option value="14">14 dagen</option>
+            <option value="30" selected>30 dagen</option>
+            <option value="45">45 dagen</option>
+            <option value="60">60 dagen</option>
+            <option value="custom">Eigen datum</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Vervaldag</label><input id="f-verval" type="date"></div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="f-status">
+            <option value="concept">Concept</option>
+            <option value="openstaand">Openstaand</option>
+            <option value="deels-betaald">Deels betaald</option>
+            <option value="betaald">Betaald</option>
+            <option value="vervallen">Vervallen</option>
+            <option value="geannuleerd">Geannuleerd</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Extra info -->
+      <div class="form-row">
+        <div class="form-group"><label>Referentie / PO</label><input id="f-ref" placeholder="PO-2026-123"></div>
+        <div class="form-group"><label>Betaalwijze</label>
+          <select id="f-betaalwijze">
+            <option value="overschrijving">Overschrijving</option>
+            <option value="domiciliering">Domiciliering</option>
+            <option value="cash">Cash</option>
+            <option value="paypal">PayPal</option>
+            <option value="stripe">Stripe / Kaart</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group full"><label>Interne notitie</label><textarea id="f-note" placeholder="Interne opmerkingen, herinneringen..."></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-factuur')">Annuleer</button>
+      <button class="btn btn-primary" onclick="saveFactuur()">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: API -->
+<div class="modal-overlay" id="modal-api">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">API / Tool registreren</div>
+      <button class="modal-close" onclick="closeModal('modal-api')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Tool / Service naam</label><input id="a-naam" placeholder="Stripe, Mailchimp..."></div>
+        <div class="form-group">
+          <label>Klant</label>
+          <select id="a-klant"><option value="">— Algemeen —</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Omgeving</label>
+          <select id="a-env">
+            <option value="productie">Productie</option>
+            <option value="staging">Staging</option>
+            <option value="development">Development</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Versie</label><input id="a-versie" placeholder="v3, 2.1.0..."></div>
+      </div>
+      <div class="form-group full"><label>API Key / Token (tip: sla geen echte keys op in een gedeeld systeem)</label><input id="a-key" placeholder="sk_live_... (optioneel)"></div>
+      <div class="form-group full"><label>Endpoint / URL</label><input id="a-url" placeholder="https://api.service.com/v3"></div>
+      <div class="form-group full"><label>Notities</label><textarea id="a-note" placeholder="Configuratie, rate limits, vervaldatum key..."></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-api')">Annuleer</button>
+      <button class="btn btn-primary" onclick="saveApi()">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- MODAL: AFSPRAAK -->
+<div class="modal-overlay" id="modal-afspraak">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Afspraak toevoegen</div>
+      <button class="modal-close" onclick="closeModal('modal-afspraak')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group full"><label>Titel</label><input id="af-naam" placeholder="Bespreking voorstel, Oplevering..."></div>
+      <div class="form-row">
+        <div class="form-group"><label>Datum</label><input id="af-datum" type="date"></div>
+        <div class="form-group"><label>Tijdstip</label><input id="af-tijd" type="time" placeholder="09:00"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Type</label>
+          <select id="af-type">
+            <option value="afspraak">Afspraak</option>
+            <option value="meeting">Meeting / Call</option>
+            <option value="deadline">Deadline</option>
+            <option value="notitie">Notitie</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Klant (optioneel)</label>
+          <select id="af-klant"><option value="">— Geen —</option></select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Project (optioneel)</label>
+        <select id="af-project"><option value="">— Geen —</option></select>
+      </div>
+      <div class="form-group full"><label>Locatie / Link</label><input id="af-locatie" placeholder="Kantoor, Teams-link, adres..."></div>
+      <div class="form-group full"><label>Notities</label><textarea id="af-note" placeholder="Agenda, voorbereiding, herinneringen..."></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-afspraak')">Annuleer</button>
+      <button class="btn btn-primary" onclick="saveAfspraak()">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/src/main.js"></script>
+<script defer src="/crm-app.js"></script>
+</body>
+</html>
