@@ -1,0 +1,2 @@
+# SPA / chemins directs : tout renvoie vers index.html (évite les 404 Netlify)
+/*    /index.html   200

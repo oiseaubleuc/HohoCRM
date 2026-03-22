@@ -1,0 +1,13 @@
+# https://docs.netlify.com/configure-builds/file-based-configuration/
+[build]
+  # La webapp Vite vit dans webapp/ — pas d’index.html à la racine du repo
+  command = "cd webapp && npm ci && npm run build"
+  publish = "webapp/dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
