@@ -138,6 +138,8 @@ function saveKlant() {
 }
 
 function saveProject() {
+  const repoNorm = normalizeGithubRepo(v('p-github'));
+  const prev = editId ? (db.projecten.find(p=>p.id===editId) || {}) : {};
   const obj = {
     id: editId || uid(),
     naam: v('p-naam'), klantId: v('p-klant'),
@@ -146,6 +148,10 @@ function saveProject() {
     progress: parseInt(v('p-progress')) || 0,
     desc: v('p-desc'),
     tags: v('p-tags').split(',').map(t=>t.trim()).filter(Boolean),
+    githubRepo: repoNorm || '',
+    githubUrl: repoNorm ? `https://github.com/${repoNorm}` : '',
+    githubSyncedAt: prev.githubSyncedAt || '',
+    githubStats: prev.githubStats || null,
     datum: today()
   };
   if (!obj.naam) { toast('❌ Vul een projectnaam in'); return; }
@@ -179,13 +185,14 @@ function saveFactuur() {
   const type = v('f-type') || 'factuur';
   const voorschotPct = type === 'voorschot' ? (parseFloat(v('f-voorschot-pct')) || 30) : null;
   const voorschotBedrag = voorschotPct ? totaal * voorschotPct / 100 : null;
+  const voorschotType = type === 'voorschot' ? (v('f-voorschot-type') || 'algemeen') : null;
 
   const obj = {
     id: editId || uid(),
     type, num: v('f-num'), klantId: v('f-klant'),
     projectId: v('f-project'), desc: v('f-desc'),
     lines, excl, btwPct, btwBedrag, totaal,
-    voorschotPct, voorschotBedrag,
+    voorschotPct, voorschotBedrag, voorschotType,
     datum: v('f-datum') || today(),
     verval: v('f-verval'), termijn: v('f-termijn'),
     status: v('f-status'),
@@ -358,6 +365,7 @@ function renderProjecten(data) {
         ${statusBadge(p.status)}
       </div>
       <div class="card-sub">${klantNaam(p.klantId)}</div>
+      ${p.githubRepo ? `<div style="font-size:11px;color:var(--text3);margin-bottom:6px">🔗 ${p.githubRepo}</div>` : ''}
       ${p.desc ? `<div style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:6px">${p.desc.slice(0,80)}${p.desc.length>80?'…':''}</div>` : ''}
       <div class="progress-wrap">
         <div class="progress-label"><span>Voortgang</span><span>${p.progress||0}%</span></div>
@@ -440,6 +448,13 @@ function renderFacturen(data) {
   setS('fstat-vervallen', totF(all.filter(f=>f.status==='vervallen').reduce((s,f)=>s+(f.totaal||0),0)));
 
   const typeLabel = { factuur:'Factuur', voorschot:'Voorschot', creditnota:'Creditnota', offerte:'Offerte', 'pro-forma':'Pro-forma' };
+  const voorschotTypeLabel = {
+    algemeen: 'Algemeen voorschot',
+    start: 'Start project',
+    design: 'Design fase',
+    development: 'Development fase',
+    oplevering: 'Oplevering / finale termijn'
+  };
   const rows = list.map(f => {
     const kl = db.klanten.find(k=>k.id===f.klantId);
     const t = f.type || 'factuur';
@@ -448,7 +463,10 @@ function renderFacturen(data) {
     const tot = f.totaal || 0;
     return `<tr onclick="openFactuurDetail('${f.id}')" style="cursor:pointer">
       <td class="td-mono" style="font-weight:600">${f.num}</td>
-      <td><span class="badge badge-type-${t}">${typeLabel[t]||t}</span></td>
+      <td>
+        <span class="badge badge-type-${t}">${typeLabel[t]||t}</span>
+        ${(t === 'voorschot' && f.voorschotType) ? `<div style="font-size:10px;color:var(--text3);margin-top:4px">${voorschotTypeLabel[f.voorschotType] || f.voorschotType}</div>` : ''}
+      </td>
       <td>${kl ? kl.voornaam+' '+kl.achternaam : '—'}</td>
       <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.desc||'—'}</td>
       <td class="fac-amount">€${excl.toLocaleString('nl-BE',{minimumFractionDigits:2})}</td>
@@ -470,6 +488,13 @@ function openFactuurDetail(id) {
   const kl = db.klanten.find(k=>k.id===f.klantId);
   const pr = db.projecten.find(p=>p.id===f.projectId);
   const typeLabel = { factuur:'Factuur', voorschot:'Voorschotfactuur', creditnota:'Creditnota', offerte:'Offerte', 'pro-forma':'Pro-forma factuur' };
+  const voorschotTypeLabel = {
+    algemeen: 'Algemeen voorschot',
+    start: 'Start project',
+    design: 'Design fase',
+    development: 'Development fase',
+    oplevering: 'Oplevering / finale termijn'
+  };
   const excl = f.excl ?? f.bedrag ?? 0;
   const btwB = f.btwBedrag ?? 0;
   const tot = f.totaal || 0;
@@ -499,6 +524,7 @@ function openFactuurDetail(id) {
       ${row(`BTW (${f.btwPct||0}%)`, `<span style="font-family:'JetBrains Mono',monospace">€${btwB.toLocaleString('nl-BE',{minimumFractionDigits:2})}</span>`)}
       ${row('Totaal', `<span style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:var(--accent)">€${tot.toLocaleString('nl-BE',{minimumFractionDigits:2})}</span>`)}
       ${f.voorschotBedrag ? row('Voorschot', `<span style="font-family:'JetBrains Mono',monospace;color:var(--amber)">€${f.voorschotBedrag.toLocaleString('nl-BE',{minimumFractionDigits:2})} (${f.voorschotPct}%)</span>`) : ''}
+      ${(f.type === 'voorschot' && f.voorschotType) ? row('Voorschot voor', voorschotTypeLabel[f.voorschotType] || f.voorschotType) : ''}
     </div>
     <div class="detail-section">
       <div class="detail-section-title">Datums</div>
@@ -596,7 +622,8 @@ function openProjectArch(id) {
   const k = db.klanten.find(k=>k.id===p.klantId);
   document.getElementById('proj-arch-title').textContent = p.naam;
   document.getElementById('proj-arch-status').innerHTML = statusBadge(p.status);
-  document.getElementById('proj-arch-client').textContent = k ? k.voornaam+' '+k.achternaam : '';
+  const repoPart = p.githubRepo ? ` • GitHub: ${p.githubRepo}` : '';
+  document.getElementById('proj-arch-client').textContent = `${k ? k.voornaam+' '+k.achternaam : ''}${repoPart}`;
 
   // Reset tabs
   document.querySelectorAll('.proj-arch-tab').forEach(t=>t.classList.remove('active'));
@@ -1047,6 +1074,108 @@ function row(label, val) {
   return `<div class="detail-row"><div class="detail-key">${label}</div><div class="detail-val">${val||'—'}</div></div>`;
 }
 
+function normalizeGithubRepo(input) {
+  const raw = (input || '').trim();
+  if (!raw) return '';
+  const cleaned = raw
+    .replace(/^https?:\/\/github\.com\//i, '')
+    .replace(/^github\.com\//i, '')
+    .replace(/\.git$/i, '')
+    .replace(/^\/+|\/+$/g, '');
+  const parts = cleaned.split('/');
+  if (parts.length < 2) return '';
+  const owner = parts[0].trim();
+  const repo = parts[1].trim();
+  if (!owner || !repo) return '';
+  return `${owner}/${repo}`;
+}
+
+async function suggestProjectFromGithub() {
+  const repo = normalizeGithubRepo(v('p-github'));
+  if (!repo) {
+    toast('❌ Vul een geldige GitHub repo in');
+    return;
+  }
+  const setVal = (id, value) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (value === undefined || value === null) return;
+    el.value = value;
+  };
+
+  try {
+    toast('⏳ GitHub data ophalen...');
+    const [repoRes, langRes, commitsRes] = await Promise.all([
+      fetch(`https://api.github.com/repos/${repo}`),
+      fetch(`https://api.github.com/repos/${repo}/languages`),
+      fetch(`https://api.github.com/repos/${repo}/commits?per_page=30`)
+    ]);
+    if (!repoRes.ok) throw new Error('Repo niet gevonden of API-limiet bereikt');
+    const repoData = await repoRes.json();
+    const langData = langRes.ok ? await langRes.json() : {};
+    const commits = commitsRes.ok ? await commitsRes.json() : [];
+
+    const commitDates = Array.isArray(commits) ? commits
+      .map(c => c?.commit?.committer?.date || c?.commit?.author?.date)
+      .filter(Boolean)
+      .map(d => new Date(d)) : [];
+    const latestCommit = commitDates.length ? new Date(Math.max(...commitDates.map(d => d.getTime()))) : null;
+    const daysSinceLastCommit = latestCommit ? Math.floor((Date.now() - latestCommit.getTime()) / 86400000) : 9999;
+
+    let status = 'concept';
+    if (repoData.archived) status = 'voltooid';
+    else if ((repoData.size || 0) > 0 && daysSinceLastCommit <= 21) status = 'actief';
+    else if (daysSinceLastCommit <= 90) status = 'pauze';
+
+    let progress = 10;
+    if (repoData.archived) progress = 100;
+    else if (daysSinceLastCommit <= 7) progress = 75;
+    else if (daysSinceLastCommit <= 21) progress = 60;
+    else if (daysSinceLastCommit <= 60) progress = 40;
+    else progress = 25;
+
+    const topLangs = Object.keys(langData || {}).slice(0, 4);
+    const suggestedTags = [...new Set(['GitHub', ...topLangs])];
+    const existingTags = v('p-tags').split(',').map(t => t.trim()).filter(Boolean);
+    const mergedTags = [...new Set([...existingTags, ...suggestedTags])];
+
+    const currentName = v('p-naam').trim();
+    if (!currentName) setVal('p-naam', (repoData.name || '').replace(/[-_]/g, ' '));
+    if (!v('p-desc').trim()) {
+      const desc = repoData.description ? repoData.description : `Project gekoppeld aan ${repo}`;
+      setVal('p-desc', desc);
+    }
+    setVal('p-status', status);
+    setVal('p-progress', progress);
+    setVal('p-start', (repoData.created_at || '').slice(0, 10));
+    setVal('p-tags', mergedTags.join(', '));
+    setVal('p-github', repo);
+
+    const draft = {
+      githubRepo: repo,
+      githubUrl: `https://github.com/${repo}`,
+      githubSyncedAt: new Date().toISOString(),
+      githubStats: {
+        stars: repoData.stargazers_count || 0,
+        forks: repoData.forks_count || 0,
+        openIssues: repoData.open_issues_count || 0,
+        latestCommit: latestCommit ? latestCommit.toISOString() : null,
+        commitSample: Array.isArray(commits) ? commits.length : 0,
+        languages: topLangs
+      }
+    };
+    const existing = editId ? db.projecten.find(p => p.id === editId) : null;
+    if (existing) {
+      Object.assign(existing, draft);
+      save();
+    }
+
+    toast('✓ Project slim ingevuld vanuit GitHub');
+  } catch (e) {
+    toast(`❌ GitHub sync mislukt: ${e.message || 'Onbekende fout'}`);
+  }
+}
+
 function openDetail() { document.getElementById('detail-panel').classList.add('open'); }
 function closeDetail() { document.getElementById('detail-panel').classList.remove('open'); }
 
@@ -1290,7 +1419,9 @@ function getFacLines() {
 function updateFactuurType() {
   const t = v('f-type');
   const vRow = document.getElementById('f-voorschot-row');
+  const vtRow = document.getElementById('f-voorschot-type-row');
   if (vRow) vRow.style.display = t === 'voorschot' ? 'flex' : 'none';
+  if (vtRow) vtRow.style.display = t === 'voorschot' ? 'flex' : 'none';
   const title = document.getElementById('modal-factuur-title');
   const labels = { factuur:'Nieuwe factuur', voorschot:'Nieuwe voorschotfactuur', creditnota:'Nieuwe creditnota', offerte:'Nieuw offerte', 'pro-forma':'Pro-forma factuur' };
   if (title) title.textContent = labels[t] || 'Nieuw document';

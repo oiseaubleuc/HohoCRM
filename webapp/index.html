@@ -692,6 +692,15 @@
         <div class="form-group"><label>Startdatum</label><input id="p-start" type="date"></div>
         <div class="form-group"><label>Deadline</label><input id="p-deadline" type="date"></div>
       </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>GitHub repo (owner/repo of URL)</label>
+          <input id="p-github" placeholder="oiseaubleuc/HohoCRM of https://github.com/oiseaubleuc/HohoCRM">
+        </div>
+        <div class="form-group" style="display:flex;align-items:flex-end">
+          <button class="btn btn-ghost" type="button" style="width:100%" onclick="suggestProjectFromGithub()">⚡ Slim invullen via GitHub</button>
+        </div>
+      </div>
       <div class="form-group full"><label>Voortgang (%)</label><input id="p-progress" type="number" min="0" max="100" placeholder="0"></div>
       <div class="form-group full"><label>Beschrijving</label><textarea id="p-desc" placeholder="Beschrijving van het project..."></textarea></div>
       <div class="form-group full"><label>Tags (komma-gescheiden)</label><input id="p-tags" placeholder="React, API, Design"></div>
@@ -817,6 +826,16 @@
             <span>%</span>
             <span id="f-voorschot-display" style="font-family:'JetBrains Mono',monospace;color:var(--amber);min-width:70px;text-align:right">€ 0,00</span>
           </div>
+        </div>
+        <div id="f-voorschot-type-row" style="display:none;justify-content:space-between;align-items:center;font-size:12px;color:var(--text2)">
+          <span>Voorschot voor</span>
+          <select id="f-voorschot-type" style="min-width:180px;padding:4px 8px;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);outline:none">
+            <option value="algemeen">Algemeen voorschot</option>
+            <option value="start">Start project</option>
+            <option value="design">Design fase</option>
+            <option value="development">Development fase</option>
+            <option value="oplevering">Oplevering / finale termijn</option>
+          </select>
         </div>
       </div>
 
