@@ -326,9 +326,13 @@
         <button class="tab" onclick="filterFacturen('openstaand',this)">Openstaand</button>
         <button class="tab" onclick="filterFacturen('vervallen',this)">Vervallen</button>
       </div>
-      <select class="gantt-select" id="fac-klant-filter" onchange="renderFacturen()">
-        <option value="">Alle klanten</option>
-      </select>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select class="gantt-select" id="fac-klant-filter" onchange="renderFacturen()">
+          <option value="">Alle klanten</option>
+        </select>
+        <button class="btn btn-primary" type="button" onclick="startFactuurOpstellen('factuur')">+ Factuur opstellen</button>
+        <button class="btn btn-ghost" type="button" onclick="startFactuurOpstellen('voorschot')">+ Voorschot opstellen</button>
+      </div>
     </div>
 
     <div class="table-wrap">
@@ -351,6 +355,7 @@
         <tbody id="facturen-tbody"></tbody>
       </table>
     </div>
+    <div id="facturen-cards" class="fac-mobile-list"></div>
   </div>
 
   <!-- TIJDLIJN -->

@@ -480,6 +480,31 @@ function renderFacturen(data) {
   });
   document.getElementById('facturen-tbody').innerHTML = rows.join('') ||
     `<tr><td colspan="11"><div class="empty"><div class="empty-icon">📄</div><div class="empty-text">Geen facturen gevonden</div></div></td></tr>`;
+
+  const cards = list.map(f => {
+    const kl = db.klanten.find(k=>k.id===f.klantId);
+    const t = f.type || 'factuur';
+    const tot = f.totaal || 0;
+    return `<div class="fac-mobile-card" onclick="openFactuurDetail('${f.id}')">
+      <div class="fac-mobile-head">
+        <div class="fac-mobile-num">${f.num}</div>
+        <span class="badge badge-status-${f.status||'concept'}">${f.status||'concept'}</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span class="badge badge-type-${t}">${typeLabel[t]||t}</span>
+        <span style="font-size:11px;color:var(--text3)">${kl ? kl.voornaam+' '+kl.achternaam : '—'}</span>
+      </div>
+      <div class="fac-mobile-row"><span>Omschrijving</span><strong>${f.desc||'—'}</strong></div>
+      <div class="fac-mobile-row"><span>Totaal</span><strong>€${tot.toLocaleString('nl-BE',{minimumFractionDigits:2})}</strong></div>
+      <div class="fac-mobile-row"><span>Vervaldag</span><strong>${fmt(f.verval)||'—'}</strong></div>
+      <div class="fac-mobile-actions">
+        <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px" onclick="event.stopPropagation();changeFactuurStatus('${f.id}','betaald')">Markeer betaald</button>
+        <button class="btn btn-danger" style="font-size:11px;padding:5px 10px" onclick="event.stopPropagation();del('facturen','${f.id}')">Verwijder</button>
+      </div>
+    </div>`;
+  });
+  const cardsEl = document.getElementById('facturen-cards');
+  if (cardsEl) cardsEl.innerHTML = cards.join('') || `<div class="empty"><div class="empty-icon">📄</div><div class="empty-text">Geen facturen gevonden</div></div>`;
 }
 
 function openFactuurDetail(id) {
@@ -670,6 +695,7 @@ function renderArchOverview(id) {
   const totFac = facturen.reduce((s,f)=>s+(f.totaal||0),0);
   const allItems = ms.flatMap(m=>m.items||[]);
   const doneItems = allItems.filter(i=>i.done).length;
+  const delivery = getProjectDeliveryStatus(p, taken, ms);
 
   document.getElementById('arch-stats').innerHTML = `
     <div class="proj-stat">
@@ -701,6 +727,20 @@ function renderArchOverview(id) {
       <div class="proj-stat-label">Tech stack</div>
       <div class="proj-stat-val">${(arch.tech||[]).length}</div>
       <div class="proj-stat-sub">technologieën</div>
+    </div>
+    <div class="proj-stat proj-stat-tracker">
+      <div class="proj-stat-label">Live opleverstatus</div>
+      <div class="proj-stat-val" style="font-size:16px">${delivery.phaseLabel}</div>
+      <div class="proj-stat-sub">Geschatte oplevering: ${delivery.etaText}</div>
+      <div class="delivery-track">
+        ${delivery.steps.map((s, i) => `
+          <div class="delivery-step ${i < delivery.phaseIndex ? 'done' : ''} ${i === delivery.phaseIndex ? 'active' : ''}">
+            <div class="delivery-dot"></div>
+            <div class="delivery-label">${s}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="proj-stat-sub">${delivery.confidenceText}</div>
     </div>`;
 
   document.getElementById('arch-details').innerHTML = `
@@ -708,6 +748,7 @@ function renderArchOverview(id) {
     ${rowArch('Klant', klantNaam(p.klantId))}
     ${rowArch('Start', fmt(p.start)||'—')}
     ${rowArch('Deadline', fmt(p.deadline)||'—')}
+    ${rowArch('Live status', `<span class="badge badge-blue">${delivery.phaseLabel}</span> · ${delivery.etaText}`)}
     ${rowArch('Budget', p.budget?'€'+parseFloat(p.budget).toLocaleString('nl-BE'):'—')}
     ${rowArch('Tags', (p.tags||[]).map(t=>`<span class="tag">${t}</span>`).join(' ')||'—')}
     ${rowArch('Beschrijving', p.desc||'—')}
@@ -748,6 +789,56 @@ function daysLeft(dateStr) {
   if (diff < 0) return `${Math.abs(diff)} dagen te laat`;
   if (diff === 0) return 'Vandaag!';
   return `nog ${diff} dagen`;
+}
+
+function getProjectDeliveryStatus(project, taken, milestones) {
+  const progress = Math.max(0, Math.min(100, parseInt(project.progress || 0, 10)));
+  const openTasks = (taken || []).filter(t => !t.done).length;
+  const totalMilestones = (milestones || []).length;
+  const doneMilestones = (milestones || []).filter(m => m.status === 'done').length;
+  const milestoneRatio = totalMilestones ? (doneMilestones / totalMilestones) : 0;
+
+  const steps = ['Besteld', 'Analyse', 'Bouw', 'Test', 'Oplevering'];
+  let phaseIndex = 0;
+  if (progress >= 100 || project.status === 'voltooid') phaseIndex = 4;
+  else if (progress >= 75) phaseIndex = 3;
+  else if (progress >= 45) phaseIndex = 2;
+  else if (progress >= 15) phaseIndex = 1;
+
+  let phaseLabel = steps[phaseIndex];
+  if (project.status === 'pauze') phaseLabel = 'On hold';
+  if (project.status === 'concept') phaseLabel = 'Intake';
+
+  const todayDate = new Date();
+  const startDate = project.start ? new Date(project.start + 'T00:00:00') : null;
+  const deadlineDate = project.deadline ? new Date(project.deadline + 'T00:00:00') : null;
+
+  let eta = deadlineDate ? new Date(deadlineDate) : null;
+  if (startDate && progress > 5) {
+    const elapsedDays = Math.max(1, Math.round((todayDate - startDate) / 86400000));
+    const projectedTotalDays = Math.round(elapsedDays / (progress / 100));
+    eta = new Date(startDate);
+    eta.setDate(startDate.getDate() + projectedTotalDays);
+  } else if (!eta && startDate) {
+    eta = new Date(startDate);
+    eta.setDate(startDate.getDate() + 30);
+  } else if (!eta) {
+    eta = new Date(todayDate);
+    eta.setDate(todayDate.getDate() + 30);
+  }
+
+  let confidence = 65;
+  if (progress >= 85) confidence = 90;
+  else if (progress >= 60) confidence = 80;
+  else if (progress >= 35) confidence = 72;
+  if (openTasks > 10) confidence -= 10;
+  if (milestoneRatio >= 0.7) confidence += 8;
+  confidence = Math.max(35, Math.min(95, confidence));
+
+  const etaText = fmt(eta.toISOString().slice(0, 10)) + ` (${daysLeft(eta.toISOString().slice(0, 10))})`;
+  const confidenceText = `Voorspelling: ${confidence}% betrouwbaar · ${openTasks} open taken`;
+
+  return { steps, phaseIndex, phaseLabel, etaText, confidenceText };
 }
 
 // KANBAN
@@ -1366,6 +1457,88 @@ function openFacModal() {
   const d = document.getElementById('f-datum');
   if (d && !d.value) d.value = today();
   calcVervaldag();
+}
+
+function nextFactuurNummer() {
+  const year = new Date().getFullYear();
+  let maxSeq = 0;
+  db.facturen.forEach(f => {
+    const n = (f.num || '').trim();
+    const m = n.match(/^(\d{4})[-/](\d{1,6})$/);
+    if (!m) return;
+    if (parseInt(m[1], 10) !== year) return;
+    const seq = parseInt(m[2], 10) || 0;
+    if (seq > maxSeq) maxSeq = seq;
+  });
+  return `${year}-${String(maxSeq + 1).padStart(3, '0')}`;
+}
+
+function suggestProjectForKlant(klantId) {
+  if (!klantId) return null;
+  const projects = db.projecten.filter(p => p.klantId === klantId);
+  if (!projects.length) return null;
+  const active = projects.find(p => p.status === 'actief');
+  return active || projects[0];
+}
+
+function suggestFactuurLijn(project, type) {
+  if (!project) {
+    return {
+      omschrijving: type === 'voorschot'
+        ? `Voorschot ${new Date().toLocaleDateString('nl-BE', { month: 'long', year: 'numeric' })}`
+        : `Diensten ${new Date().toLocaleDateString('nl-BE', { month: 'long', year: 'numeric' })}`,
+      aantal: 1,
+      prijs: 0,
+      subtotaal: 0
+    };
+  }
+  const budget = parseFloat(project.budget) || 0;
+  const billed = db.facturen
+    .filter(f => f.projectId === project.id && f.type !== 'creditnota')
+    .reduce((s, f) => s + (f.excl || 0), 0);
+  const remaining = Math.max(0, budget - billed);
+  let price = 0;
+  if (type === 'voorschot') {
+    price = remaining > 0 ? (remaining * 0.3) : (budget > 0 ? budget * 0.3 : 0);
+  } else {
+    price = remaining > 0 ? remaining : (budget > 0 ? budget * 0.2 : 0);
+  }
+  return {
+    omschrijving: type === 'voorschot'
+      ? `Voorschot ${project.naam}`
+      : `Diensten ${project.naam}`,
+    aantal: 1,
+    prijs: Math.round(price * 100) / 100,
+    subtotaal: Math.round(price * 100) / 100
+  };
+}
+
+function startFactuurOpstellen(type = 'factuur') {
+  editId = null;
+  openModal('modal-factuur');
+
+  const klantFilter = (document.getElementById('fac-klant-filter') || {}).value || '';
+  if (klantFilter) {
+    set('f-klant', klantFilter);
+    populateProjectSelect();
+  }
+  const project = suggestProjectForKlant(klantFilter);
+  if (project) set('f-project', project.id);
+
+  set('f-type', type);
+  set('f-status', 'concept');
+  set('f-num', nextFactuurNummer());
+  set('f-datum', today());
+  set('f-termijn', '30');
+  set('f-desc', type === 'voorschot'
+    ? `Voorschot ${project ? project.naam : ''}`.trim()
+    : `Factuur ${project ? project.naam : ''}`.trim());
+
+  facLines = [suggestFactuurLijn(project, type)];
+  renderFacLines();
+  updateFactuurType();
+  calcVervaldag();
+  updateFacTotals();
 }
 
 function addFacLine() {
