@@ -21,6 +21,7 @@ hohoh-pkg-builder/
 │   └── Sources/HohohSolutionsCRMNative/
 ├── build.sh                   Bouwt webapp + .pkg / .dmg (browser-launcher app)
 ├── build-native-mac-app.sh    Bouwt HohohSolutions CRM Native.app (echte venster-app)
+├── build-full-package.sh      Bouwt volledige releasebundel in releases/
 ├── generate_icon.py
 └── payload/Applications/...   Template voor de browser-gebaseerde .app
 ```
@@ -70,6 +71,38 @@ chmod +x build.sh
 | `./build.sh all` | beide |
 
 Het script draait automatisch **`npm install` / `npm ci`** en **`npm run build`** in `webapp/`, en kopieert **`webapp/dist/`** naar `HohohSolutions CRM.app/Contents/Resources/`.
+
+---
+
+## Full package (alles in 1)
+
+Gebruik dit als je een complete klantrelease wil:
+
+```bash
+chmod +x build-full-package.sh
+./build-full-package.sh
+```
+
+Output komt in `releases/HohoCRM-FullPackage-v.../` met:
+- `installers/` → `.pkg` + `.dmg`
+- `native/` → `HohohSolutions CRM Native.app`
+- `webapp/` → deploy-klare `dist`
+- `vitrine/` → vitrine website HTML
+- `SHA256SUMS.txt`
+- `README-CUSTOMER.txt`
+
+---
+
+## Friendly use (zonder technische kennis)
+
+1. Dubbelklik op `build-easy.command`
+2. Kies een nummer in het menu:
+   - `1` webapp
+   - `2` Mac installer
+   - `3` Native Mac app
+   - `4` Volledig pakket
+
+Voor klantenlevering kies je meestal `4`.
 
 ---
 

@@ -5,4 +5,5 @@ macos-native/.build/
 *.pkg
 build/
 HohohSolutions CRM Native.app
+releases/
 .DS_Store

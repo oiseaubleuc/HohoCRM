@@ -10,6 +10,7 @@ let projectFilter = 'alle';
 let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
 let selectedDay = null;
+let autoFollowupTriggeredToday = false;
 
 // ─── PERSISTENCE ─────────────────────────────────────────────────────────────
 function save() {
@@ -140,6 +141,7 @@ function saveKlant() {
 function saveProject() {
   const repoNorm = normalizeGithubRepo(v('p-github'));
   const prev = editId ? (db.projecten.find(p=>p.id===editId) || {}) : {};
+  const cadence = v('p-followup-cadence') || prev.followupCadence || 'uit';
   const obj = {
     id: editId || uid(),
     naam: v('p-naam'), klantId: v('p-klant'),
@@ -152,6 +154,11 @@ function saveProject() {
     githubUrl: repoNorm ? `https://github.com/${repoNorm}` : '',
     githubSyncedAt: prev.githubSyncedAt || '',
     githubStats: prev.githubStats || null,
+    followupCadence: cadence,
+    followupLastSent: prev.followupLastSent || '',
+    followupNextDue: cadence !== 'uit'
+      ? (prev.followupNextDue || computeNextFollowupDate(cadence, today()))
+      : '',
     datum: today()
   };
   if (!obj.naam) { toast('❌ Vul een projectnaam in'); return; }
@@ -282,6 +289,7 @@ function render() {
     renderAgendaDayList();
     renderAgendaUpcoming();
   }
+  runAutomaticFollowupEngine();
 }
 
 function updateBadges() {
@@ -749,12 +757,17 @@ function renderArchOverview(id) {
     ${rowArch('Start', fmt(p.start)||'—')}
     ${rowArch('Deadline', fmt(p.deadline)||'—')}
     ${rowArch('Live status', `<span class="badge badge-blue">${delivery.phaseLabel}</span> · ${delivery.etaText}`)}
+    ${rowArch('Opvolgmail', p.followupCadence && p.followupCadence !== 'uit' ? `Actief (${p.followupCadence})` : 'Uit')}
+    ${rowArch('Laatste opvolging', fmt(p.followupLastSent)||'—')}
+    ${rowArch('Volgende opvolging', fmt(p.followupNextDue)||'—')}
     ${rowArch('Budget', p.budget?'€'+parseFloat(p.budget).toLocaleString('nl-BE'):'—')}
     ${rowArch('Tags', (p.tags||[]).map(t=>`<span class="tag">${t}</span>`).join(' ')||'—')}
     ${rowArch('Beschrijving', p.desc||'—')}
-    <div style="padding:12px 16px;display:flex;gap:8px">
+    <div style="padding:12px 16px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-ghost" onclick="editProject('${id}')">✎ Bewerk project</button>
       <button class="btn btn-primary" onclick="switchArchTab('kanban',document.querySelectorAll('.proj-arch-tab')[1])">Open Kanban</button>
       <button class="btn btn-ghost" onclick="switchArchTab('roadmap',document.querySelectorAll('.proj-arch-tab')[2])">Roadmap</button>
+      <button class="btn btn-ghost" onclick="sendProjectFollowupEmail('${id}')">✉ Stuur opvolgmail</button>
     </div>`;
 
   // Mini tijdlijn van mijlpalen
@@ -839,6 +852,69 @@ function getProjectDeliveryStatus(project, taken, milestones) {
   const confidenceText = `Voorspelling: ${confidence}% betrouwbaar · ${openTasks} open taken`;
 
   return { steps, phaseIndex, phaseLabel, etaText, confidenceText };
+}
+
+function computeNextFollowupDate(cadence, fromDate) {
+  const base = new Date((fromDate || today()) + 'T00:00:00');
+  const map = { wekelijks: 7, '2wekelijks': 14, maandelijks: 30 };
+  const days = map[cadence] || 0;
+  if (!days) return '';
+  base.setDate(base.getDate() + days);
+  return base.toISOString().slice(0,10);
+}
+
+function sendProjectFollowupEmail(projectId, isAuto = false) {
+  const p = db.projecten.find(x => x.id === projectId);
+  if (!p) return;
+  const k = db.klanten.find(x => x.id === p.klantId);
+  if (!k || !k.email) {
+    toast('❌ Klant heeft geen e-mailadres');
+    return;
+  }
+  const delivery = getProjectDeliveryStatus(p, db.taken.filter(t => t.projectId === projectId), db.roadmaps[projectId] || []);
+  const subject = encodeURIComponent(`Opvolging project ${p.naam} — ${delivery.phaseLabel}`);
+  const body = encodeURIComponent(
+`Beste ${k.voornaam || ''},
+
+Hierbij een statusupdate van je project:
+
+- Project: ${p.naam}
+- Huidige fase: ${delivery.phaseLabel}
+- Voortgang: ${p.progress || 0}%
+- Geschatte oplevering: ${delivery.etaText}
+
+We houden je op de hoogte van de volgende stap.
+
+Groeten,
+HohohSolutions`);
+  window.location.href = `mailto:${k.email}?subject=${subject}&body=${body}`;
+
+  p.followupLastSent = today();
+  p.followupNextDue = p.followupCadence && p.followupCadence !== 'uit'
+    ? computeNextFollowupDate(p.followupCadence, today())
+    : '';
+  save();
+  if (!isAuto) {
+    render();
+    toast('✓ Opvolgmail voorbereid');
+  }
+}
+
+function runAutomaticFollowupEngine() {
+  if (autoFollowupTriggeredToday) return;
+  const todayStr = today();
+  const due = db.projecten.find(p =>
+    p.followupCadence && p.followupCadence !== 'uit' &&
+    p.followupNextDue &&
+    p.followupNextDue <= todayStr &&
+    p.followupLastSent !== todayStr
+  );
+  if (!due) return;
+  const k = db.klanten.find(x => x.id === due.klantId);
+  if (!k || !k.email) return;
+  autoFollowupTriggeredToday = true;
+  sendProjectFollowupEmail(due.id, true);
+  toast(`⏰ Automatische opvolging klaar voor ${due.naam}`);
 }
 
 // KANBAN
@@ -1289,6 +1365,21 @@ function editKlant(id) {
 function set(id, val) {
   const el = document.getElementById(id);
   if (el) el.value = val || '';
+}
+
+function editProject(id) {
+  const p = db.projecten.find(x => x.id === id);
+  if (!p) return;
+  editId = id;
+  set('p-naam', p.naam); set('p-klant', p.klantId);
+  set('p-status', p.status); set('p-budget', p.budget);
+  set('p-start', p.start); set('p-deadline', p.deadline);
+  set('p-progress', p.progress); set('p-desc', p.desc);
+  set('p-tags', (p.tags || []).join(', '));
+  set('p-github', p.githubRepo || p.githubUrl || '');
+  set('p-followup-cadence', p.followupCadence || 'uit');
+  openModal('modal-project');
+  closeDetail();
 }
 
 // ─── SEARCH ───────────────────────────────────────────────────────────────────

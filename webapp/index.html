@@ -709,6 +709,15 @@
       <div class="form-group full"><label>Voortgang (%)</label><input id="p-progress" type="number" min="0" max="100" placeholder="0"></div>
       <div class="form-group full"><label>Beschrijving</label><textarea id="p-desc" placeholder="Beschrijving van het project..."></textarea></div>
       <div class="form-group full"><label>Tags (komma-gescheiden)</label><input id="p-tags" placeholder="React, API, Design"></div>
+      <div class="form-group full">
+        <label>Opvolgmail automatisatie</label>
+        <select id="p-followup-cadence">
+          <option value="uit">Uit</option>
+          <option value="wekelijks">Wekelijks</option>
+          <option value="2wekelijks">Elke 2 weken</option>
+          <option value="maandelijks">Maandelijks</option>
+        </select>
+      </div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="closeModal('modal-project')">Annuleer</button>

@@ -1,0 +1,17 @@
+HohoCRM - START HIER (simpel)
+
+Dubbelklik op:
+  build-easy.command
+
+Daarna kies je gewoon een nummer:
+  1 = webapp
+  2 = Mac installer (.pkg + .dmg)
+  3 = Native Mac app (.app)
+  4 = Volledig pakket voor klanten
+
+Tip voor verkoop/klaarzetten:
+  Kies 4 (Volledig pakket)
+  Daarna vind je alles in de map: releases/
+
+Als macOS vraagt om toestemming:
+  Rechtsklik op build-easy.command > Open
