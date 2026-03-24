@@ -29,6 +29,12 @@ struct CRMWebView: NSViewRepresentable {
                 decisionHandler(.cancel)
                 return
             }
+            let scheme = (u.scheme ?? "").lowercased()
+            if scheme == "mailto" || scheme == "tel" {
+                NSWorkspace.shared.open(u)
+                decisionHandler(.cancel)
+                return
+            }
             if u.scheme == "http" || u.scheme == "https" {
                 if u.host == "127.0.0.1" || u.host == "localhost" {
                     decisionHandler(.allow)

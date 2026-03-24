@@ -49,8 +49,8 @@ if [[ "$OSTYPE" != "darwin"* ]]; then
 fi
 
 MACOS_VER=$(sw_vers -productVersion | cut -d. -f1)
-if [ "$MACOS_VER" -lt 11 ]; then
-  echo -e "${YELLOW}⚠ macOS 11+ aanbevolen. Huidig: $(sw_vers -productVersion)${NC}"
+if [ "$MACOS_VER" -lt 13 ]; then
+  echo -e "${YELLOW}⚠ Native app vereist macOS 13+. Huidig: $(sw_vers -productVersion)${NC}"
 fi
 echo -e "${GREEN}✓ macOS $(sw_vers -productVersion)${NC}"
 
@@ -72,6 +72,14 @@ if [ "$NEED_DMG" -eq 1 ]; then
     exit 1
   fi
   echo -e "${GREEN}✓ hdiutil${NC}"
+fi
+if [ "$NEED_PKG" -eq 1 ] || [ "$NEED_DMG" -eq 1 ]; then
+  if ! command -v swift &> /dev/null; then
+    echo -e "${RED}✗ swift niet gevonden. Installeer Xcode Command Line Tools:${NC}"
+    echo -e "  ${YELLOW}xcode-select --install${NC}"
+    exit 1
+  fi
+  echo -e "${GREEN}✓ swift (native app)${NC}"
 fi
 
 # ── Stap 3: Webapp bouwen (Vite → dist/) ──
@@ -108,37 +116,29 @@ mkdir -p "$BUILD_DIR/payload/Applications/${APP_NAME}.app/Contents/Resources"
 mkdir -p "$BUILD_DIR/scripts"
 echo -e "${GREEN}✓ Build directories aangemaakt${NC}"
 
-# ── Stap 5: App bundle samenstellen ──
-echo -e "${BLUE}▸ App bundle samenstellen...${NC}"
+# ── Stap 5: Native macOS-app (WKWebView) — geen browser, alles in eigen venster ──
+echo -e "${BLUE}▸ Native app bouwen (Swift + WKWebView)...${NC}"
+export HOHOH_SKIP_WEB_BUILD=1
+"$SCRIPT_DIR/build-native-mac-app.sh"
+unset HOHOH_SKIP_WEB_BUILD
 
-APP_MACOS="$BUILD_DIR/payload/Applications/${APP_NAME}.app/Contents/MacOS"
-APP_RES="$BUILD_DIR/payload/Applications/${APP_NAME}.app/Contents/Resources"
-
-# Vite-dist naar app Resources
-cp -R "$WEBAPP_DIR/dist/." "$APP_RES/"
-
-# Info.plist kopiëren
-cp "$SCRIPT_DIR/payload/Applications/${APP_NAME}.app/Contents/Info.plist" \
-   "$BUILD_DIR/payload/Applications/${APP_NAME}.app/Contents/Info.plist"
-
-# Launcher script kopiëren en uitvoerbaar maken
-LAUNCHER="$BUILD_DIR/payload/Applications/${APP_NAME}.app/Contents/MacOS/${APP_NAME}"
-cp "$SCRIPT_DIR/payload/Applications/${APP_NAME}.app/Contents/MacOS/${APP_NAME}" "$LAUNCHER"
-chmod +x "$LAUNCHER"
-
-echo -e "${GREEN}✓ App bundle klaar${NC}"
-
-# ── Stap 6: Icoon genereren ──
-echo -e "${BLUE}▸ App icoon genereren...${NC}"
-if command -v python3 &> /dev/null; then
-  # Probeer Pillow te installeren
-  pip3 install Pillow --quiet 2>/dev/null || true
-  python3 "$SCRIPT_DIR/generate_icon.py" "$APP_RES/AppIcon.icns" 2>/dev/null && \
-    echo -e "${GREEN}✓ Icoon aangemaakt${NC}" || \
-    echo -e "${YELLOW}⚠ Icoon kon niet worden aangemaakt (geen Pillow). Doorgaan zonder icoon...${NC}"
-else
-  echo -e "${YELLOW}⚠ Python3 niet gevonden. Doorgaan zonder icoon...${NC}"
+NATIVE_BUILT="$SCRIPT_DIR/HohohSolutions CRM Native.app"
+if [ ! -d "$NATIVE_BUILT" ]; then
+  echo -e "${RED}✗ Native .app niet gevonden na build.${NC}"
+  exit 1
 fi
+
+echo -e "${BLUE}▸ App bundle voor installer kopiëren als «${APP_NAME}.app»...${NC}"
+rm -rf "$BUILD_DIR/payload/Applications/${APP_NAME}.app"
+cp -R "$NATIVE_BUILT" "$BUILD_DIR/payload/Applications/${APP_NAME}.app"
+echo -e "${GREEN}✓ App bundle klaar (native, geen Safari/Chrome)${NC}"
+
+# Zichtbare kopie naast .pkg (de map build/ is makkelijk over het hoofd gezien)
+TEST_OUT="$SCRIPT_DIR/Te-testen"
+mkdir -p "$TEST_OUT"
+rm -rf "$TEST_OUT/${APP_NAME}.app"
+cp -R "$BUILD_DIR/payload/Applications/${APP_NAME}.app" "$TEST_OUT/"
+echo -e "${GREEN}✓ App om direct te testen:${NC} $TEST_OUT/${APP_NAME}.app"
 
 if [ "$NEED_PKG" -eq 1 ]; then
 
@@ -151,13 +151,18 @@ cat > "$BUILD_DIR/scripts/preinstall" << 'PREINSTALL'
 if [ -d "/Applications/HohohSolutions CRM.app" ]; then
   rm -rf "/Applications/HohohSolutions CRM.app"
 fi
+if [ -d "/Applications/HohohSolutions CRM Native.app" ]; then
+  rm -rf "/Applications/HohohSolutions CRM Native.app"
+fi
 exit 0
 PREINSTALL
 
 cat > "$BUILD_DIR/scripts/postinstall" << 'POSTINSTALL'
 #!/bin/bash
-# Maak launcher uitvoerbaar
-chmod +x "/Applications/HohohSolutions CRM.app/Contents/MacOS/HohohSolutions CRM"
+# Maak native binary uitvoerbaar
+if [ -f "/Applications/HohohSolutions CRM.app/Contents/MacOS/HohohSolutionsCRMNative" ]; then
+  chmod +x "/Applications/HohohSolutions CRM.app/Contents/MacOS/HohohSolutionsCRMNative"
+fi
 
 # Registreer met LaunchServices
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
@@ -218,7 +223,7 @@ cat > "$DIST_XML" << DISTXML
 
   <volume-check>
     <allowed-os-versions>
-      <os-version min="11.0"/>
+      <os-version min="13.0"/>
     </allowed-os-versions>
   </volume-check>
 
@@ -264,9 +269,13 @@ MODULES
 • API & Tools beheer
 
 INSTALLATIE
-De app wordt geïnstalleerd in /Applications.
-Bij openen draait een kleine lokale webserver; de CRM opent in je browser op http://127.0.0.1
-(zodat je gegevens correct bewaard blijven). Python 3 moet op de Mac aanwezig zijn.
+De app wordt geïnstalleerd in /Applications als «HohohSolutions CRM.app».
+Dit is een echte Mac-app met eigen venster (WebKit / WKWebView). Er wordt geen
+Safari of Chrome geopend; alles draait lokaal op jouw Mac.
+
+VEREISTEN
+• macOS 13 of nieuwer
+• Geen aparte Python-installatie nodig voor deze app
 
 DATA & PRIVACY
 Alle data blijft 100% lokaal op jouw Mac.
@@ -340,7 +349,7 @@ echo -e "${GREEN}${BOLD}╚═════════════════�
 echo ""
 echo -e "${BOLD}Output:${NC} $DMG_OUTPUT"
 echo -e "${BOLD}Grootte:${NC} $(du -sh "$DMG_OUTPUT" | cut -f1)"
-echo -e "${YELLOW}Tip:${NC} Dubbelklik de .dmg, sleep de app naar Programma’s. Werkt op Apple Silicon (M1/M2/M3) en Intel."
+echo -e "${YELLOW}Tip:${NC} Dubbelklik de .dmg, sleep de app naar Programma’s. Opent in een eigen venster (geen browser). macOS 13+."
 echo ""
 fi
 

@@ -109,8 +109,8 @@ Inhoud:
 Aanbevolen distributie:
 1) Verkoopsite: host vitrine/hohohsolutions-website.html
 2) Productplatform: deploy webapp/ op Netlify
-3) Mac install: deel de .dmg of .pkg uit installers/
-4) Native app: deel installers/HohoSolutions-CRM-Native.app.zip
+3) Mac install: deel de .dmg of .pkg uit installers/ — dit installeert nu de echte Mac-app (eigen venster, geen Safari)
+4) Optioneel: installers/HohoSolutions-CRM-Native.app.zip (zelfde techniek als in de .pkg)
 
 Belangrijk:
 - Vul Stripe links in de vitrine HTML voordat je verkoopt.

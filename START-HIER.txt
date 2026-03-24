@@ -9,6 +9,10 @@ Daarna kies je gewoon een nummer:
   3 = Native Mac app (.app)
   4 = Volledig pakket voor klanten
 
+Waar staat de echte .app in je projectmap?
+  Map: Te-testen/HohohSolutions CRM.app
+  (verschijnt automatisch na build — .pkg/.dmg zijn alleen installers)
+
 Tip voor verkoop/klaarzetten:
   Kies 4 (Volledig pakket)
   Daarna vind je alles in de map: releases/

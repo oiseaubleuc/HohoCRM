@@ -19,11 +19,11 @@ hohoh-pkg-builder/
 │   ├── Package.swift
 │   ├── Info.plist
 │   └── Sources/HohohSolutionsCRMNative/
-├── build.sh                   Bouwt webapp + .pkg / .dmg (browser-launcher app)
-├── build-native-mac-app.sh    Bouwt HohohSolutions CRM Native.app (echte venster-app)
+├── build.sh                   Bouwt webapp + native app + .pkg / .dmg (installeert echte Mac-app)
+├── build-native-mac-app.sh    Bouwt HohohSolutions CRM Native.app (Swift + WKWebView)
 ├── build-full-package.sh      Bouwt volledige releasebundel in releases/
 ├── generate_icon.py
-└── payload/Applications/...   Template voor de browser-gebaseerde .app
+└── payload/Applications/...   Oude launcher-template (referentie; installer gebruikt native build)
 ```
 
 ### Native Mac-app (aanbevolen als “echte” desktop-app)
@@ -33,7 +33,9 @@ chmod +x build-native-mac-app.sh
 ./build-native-mac-app.sh
 ```
 
-Levert **`HohohSolutions CRM Native.app`**: de CRM draait **in een macOS-venster** (geen aparte browser). Er wordt lokaal nog steeds **Python 3** gebruikt voor `http://127.0.0.1` (localStorage), net als bij de andere variant.
+Levert **`HohohSolutions CRM Native.app`**: de CRM draait **in een macOS-venster** (WKWebView). Er wordt **geen** Safari/Chrome geopend. Een kleine ingebouwde HTTP-server draait alleen **binnen de app** (localhost) zodat `localStorage` betrouwbaar werkt.
+
+**Automatische updates (Sparkle):** ingebouwd. Stel `SUFeedURL` en `SUPublicEDKey` in `macos-native/Info.plist` in, host een `appcast.xml` + getekende zip op HTTPS, en gebruik `./publish-mac-update.sh <versie>`. Volledige stappen: [`updates/SPARKLE-UPDATES.md`](updates/SPARKLE-UPDATES.md).
 
 **Français :** même commande — application **macOS complète** avec interface intégrée (pas seulement un raccourci vers le navigateur).
 
@@ -51,10 +53,10 @@ Open http://localhost:5173 — hot reload tijdens bewerken.
 
 ## Vereisten (macOS-build)
 
-- macOS 11.0 of nieuwer
+- macOS **13.0** of nieuwer (native app)
 - **Node.js + npm** (https://nodejs.org) — voor `npm run build` in `webapp/`
-- Xcode Command Line Tools (`xcode-select --install`)
-- Python 3 (launcher + optioneel Pillow voor icoon)
+- Xcode Command Line Tools (`xcode-select --install`) — o.a. **Swift** voor de native app
+- **Python 3** — alleen nodig op de **bouwmachine** om `AppIcon.icns` te genereren (`generate_icon.py`); de geïnstalleerde klant-app vereist geen Python
 
 ---
 
@@ -70,7 +72,7 @@ chmod +x build.sh
 | `./build.sh dmg` | `.dmg` (app slepen naar Programma’s) |
 | `./build.sh all` | beide |
 
-Het script draait automatisch **`npm install` / `npm ci`** en **`npm run build`** in `webapp/`, en kopieert **`webapp/dist/`** naar `HohohSolutions CRM.app/Contents/Resources/`.
+Het script bouwt de webapp, daarna **`build-native-mac-app.sh`** (Swift), en plaatst het resultaat als **`/Applications/HohohSolutions CRM.app`** in de installer (zelfde UI als de webapp, maar **in een eigen venster**, niet in je standaardbrowser).
 
 ---
 
@@ -108,8 +110,8 @@ Voor klantenlevering kies je meestal `4`.
 
 ## Eindgebruiker (geïnstalleerde app)
 
-- De app start een **lokale webserver** op `http://127.0.0.1` en opent de CRM in de browser (nodig voor **`localStorage`**; `file://` werkt niet betrouwbaar).
-- **Python 3** moet op de Mac staan (`xcode-select --install`).
+- Dubbelklik op **HohohSolutions CRM**: je krijgt **een normaal macOS-venster** met de CRM (WebKit). Er wordt **geen** apart browservenster geopend.
+- Technisch draait er nog steeds een **mini HTTP-server op localhost** *binnen de app* — dat is normaal en lokaal; het is geen “website op het internet”.
 
 ---
 

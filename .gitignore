@@ -6,4 +6,8 @@ macos-native/.build/
 build/
 HohohSolutions CRM Native.app
 releases/
+Te-testen/*.app
+updates/dist/
+updates/*private*
+updates/*.pem
 .DS_Store

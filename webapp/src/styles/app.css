@@ -343,7 +343,8 @@
     position: fixed;
     inset: 0;
     background: rgba(0,0,0,0.7);
-    z-index: 100;
+    /* Boven project-architectuur overlay (300) zodat Bewerk project / formulieren zichtbaar zijn */
+    z-index: 400;
     align-items: center;
     justify-content: center;
     backdrop-filter: blur(4px);

@@ -12,8 +12,18 @@ let calMonth = new Date().getMonth();
 let selectedDay = null;
 let autoFollowupTriggeredToday = false;
 
+function normalizeDbShape() {
+  if (!db || typeof db !== 'object') db = {};
+  ['klanten','projecten','taken','facturen','apis','afspraken','todoLists','meetings'].forEach(k => {
+    if (!Array.isArray(db[k])) db[k] = [];
+  });
+  if (!db.roadmaps || typeof db.roadmaps !== 'object') db.roadmaps = {};
+  if (!db.arch || typeof db.arch !== 'object') db.arch = {};
+}
+
 // ─── PERSISTENCE ─────────────────────────────────────────────────────────────
 function save() {
+  normalizeDbShape();
   localStorage.setItem('mijncrm', JSON.stringify(db));
 }
 
@@ -22,12 +32,7 @@ function load() {
   if (raw) {
     try { db = JSON.parse(raw); } catch(e) {}
   }
-  // Ensure arrays
-  ['klanten','projecten','taken','facturen','apis','afspraken','todoLists','meetings'].forEach(k => {
-    if (!Array.isArray(db[k])) db[k] = [];
-  });
-  if (!db.roadmaps) db.roadmaps = {};
-  if (!db.arch) db.arch = {};
+  normalizeDbShape();
 }
 
 // ─── ID + DATE ────────────────────────────────────────────────────────────────
@@ -62,10 +67,22 @@ function showPage(name) {
 // ─── OPEN MODAL ──────────────────────────────────────────────────────────────
 function openAddModal() {
   editId = null;
+  if (currentPage === 'todo') {
+    addTodoList();
+    return;
+  }
+  if (currentPage === 'meetings') {
+    addMeeting();
+    return;
+  }
+  if (currentPage === 'agenda') {
+    openAddAfspraakModal();
+    return;
+  }
   const map = {
     dashboard: 'klant', klanten: 'klant', projecten: 'project',
     taken: 'taak', facturen: 'factuur', apilog: 'api',
-    tijdlijn: 'project', roadmap: 'project', agenda: 'afspraak'
+    tijdlijn: 'project', roadmap: 'project'
   };
   const type = map[currentPage] || 'klant';
   openModal('modal-' + type);
@@ -273,6 +290,7 @@ function statusBadge(s) {
 
 // ─── RENDER ───────────────────────────────────────────────────────────────────
 function render() {
+  normalizeDbShape();
   updateBadges();
   if (currentPage === 'dashboard') renderDashboard();
   if (currentPage === 'klanten') renderKlanten();
@@ -296,9 +314,9 @@ function updateBadges() {
   document.getElementById('badge-klanten').textContent = db.klanten.length;
   document.getElementById('badge-projecten').textContent = db.projecten.filter(p=>p.status==='actief').length;
   document.getElementById('badge-taken').textContent = db.taken.filter(t=>!t.done).length;
-  const openTodo = db.todoLists.reduce((s,l)=>(l.items||[]).filter(i=>!i.done).length+s,0);
+  const openTodo = (db.todoLists || []).reduce((s,l)=>(l.items||[]).filter(i=>!i.done).length+s,0);
   document.getElementById('badge-todo').textContent = openTodo || '';
-  document.getElementById('badge-meetings').textContent = db.meetings.length || '';
+  document.getElementById('badge-meetings').textContent = (db.meetings || []).length || '';
 }
 
 function renderDashboard() {
@@ -660,9 +678,11 @@ function openProjectArch(id) {
 
   // Reset tabs
   document.querySelectorAll('.proj-arch-tab').forEach(t=>t.classList.remove('active'));
-  document.querySelector('.proj-arch-tab').classList.add('active');
+  const firstTab = document.querySelector('.proj-arch-tab');
+  if (firstTab) firstTab.classList.add('active');
   document.querySelectorAll('.proj-arch-panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById('arch-panel-overview').classList.add('active');
+  const overviewPanel = document.getElementById('arch-panel-overview');
+  if (overviewPanel) overviewPanel.classList.add('active');
 
   document.getElementById('proj-arch-overlay').classList.add('open');
   renderArchOverview(id);
@@ -676,10 +696,12 @@ function closeProjectArch() {
 function switchArchTab(tab, btn) {
   currentArchTab = tab;
   document.querySelectorAll('.proj-arch-tab').forEach(t=>t.classList.remove('active'));
-  btn.classList.add('active');
+  if (btn && btn.classList) btn.classList.add('active');
   document.querySelectorAll('.proj-arch-panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById('arch-panel-'+tab).classList.add('active');
+  const panel = document.getElementById('arch-panel-'+tab);
+  if (panel) panel.classList.add('active');
   const id = currentArchProjectId;
+  if (!id) return;
   if (tab==='overview') renderArchOverview(id);
   if (tab==='kanban') renderArchKanban(id);
   if (tab==='roadmap') renderArchRoadmap(id);
@@ -1371,6 +1393,7 @@ function editProject(id) {
   const p = db.projecten.find(x => x.id === id);
   if (!p) return;
   editId = id;
+  openModal('modal-project');
   set('p-naam', p.naam); set('p-klant', p.klantId);
   set('p-status', p.status); set('p-budget', p.budget);
   set('p-start', p.start); set('p-deadline', p.deadline);
@@ -1378,7 +1401,6 @@ function editProject(id) {
   set('p-tags', (p.tags || []).join(', '));
   set('p-github', p.githubRepo || p.githubUrl || '');
   set('p-followup-cadence', p.followupCadence || 'uit');
-  openModal('modal-project');
   closeDetail();
 }
 
@@ -1429,10 +1451,7 @@ function importData(e) {
       const data = JSON.parse(ev.target.result);
       if (data.klanten || data.projecten) {
         db = data;
-        ['klanten','projecten','taken','facturen','apis','afspraken'].forEach(k => {
-          if (!Array.isArray(db[k])) db[k] = [];
-        });
-        if (!db.roadmaps) db.roadmaps = {};
+        normalizeDbShape();
         save(); render();
         toast('✓ Data geïmporteerd');
       } else { toast('❌ Ongeldig bestand'); }
@@ -2507,6 +2526,34 @@ function renderAgendaUpcoming() {
     </div>`).join('') : '<div style="color:var(--text3);font-size:13px">Geen aankomende items</div>';
 }
 
+function installClickSafetyGuards() {
+  const names = [
+    'showPage','openAddModal','openModal','closeModal','saveKlant','saveProject','saveTaak','saveFactuur','saveApi',
+    'addTodoList','addMeeting','filterProjecten','filterFacturen','startFactuurOpstellen','openAddAfspraakModal',
+    'openProjectArch','openProjectDetail','editProject','editKlant','switchArchTab','saveProjectNotes'
+  ];
+  names.forEach((name) => {
+    const fn = window[name];
+    if (typeof fn !== 'function' || fn.__safeWrapped) return;
+    const wrapped = function(...args) {
+      try {
+        return fn.apply(this, args);
+      } catch (err) {
+        console.error(`[UI handler failed] ${name}`, err);
+        toast(`❌ Actie mislukt (${name}). Probeer opnieuw.`);
+        return null;
+      }
+    };
+    wrapped.__safeWrapped = true;
+    window[name] = wrapped;
+  });
+}
+
+window.addEventListener('error', (e) => {
+  console.error('Uncaught error:', e.error || e.message);
+});
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 load();
+installClickSafetyGuards();
 render();

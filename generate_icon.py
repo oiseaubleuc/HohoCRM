@@ -1,126 +1,132 @@
 #!/usr/bin/env python3
 """
-Genereert een AppIcon.icns voor de HohohSolutions CRM macOS app.
-Vereisten: Python 3, Pillow  (pip3 install Pillow)
-Draai dit script VOOR build.sh
+Generate a valid AppIcon.icns without Pillow.
+- Creates a custom purple gradient icon with an H mark.
+- Builds a proper .iconset and runs iconutil.
 """
-import os, struct, zlib, subprocess, shutil, sys
 
-def make_png_bytes(size):
-    """Genereert een paarse gradient PNG met H-lettermark voor de gegeven grootte."""
-    try:
-        from PIL import Image, ImageDraw, ImageFont
-        img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-        draw = ImageDraw.Draw(img)
+import os
+import struct
+import subprocess
+import zlib
+import binascii
+import shutil
+import sys
 
-        # Achtergrond: afgerond vierkant paars gradient (simulatie)
-        r = max(4, int(size * 0.22))
-        for y in range(size):
-            t = y / size
-            # gradient van #9b8ef9 naar #534AB7
-            ri = int(155 + (83 - 155) * t)
-            gi = int(142 + (74 - 142) * t)
-            bi = int(249 + (183 - 249) * t)
-            draw.rectangle([0, y, size, y+1], fill=(ri, gi, bi, 255))
 
-        # Afgeronde hoeken transparant maken (simpele cirkelmasker)
-        mask = Image.new("L", (size, size), 0)
-        mask_draw = ImageDraw.Draw(mask)
-        mask_draw.rounded_rectangle([0, 0, size-1, size-1], radius=r, fill=255)
-        img.putalpha(mask)
+def _png_chunk(tag: bytes, data: bytes) -> bytes:
+    crc = binascii.crc32(tag + data) & 0xFFFFFFFF
+    return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", crc)
 
-        # H lettermark
-        draw2 = ImageDraw.Draw(img)
-        m = int(size * 0.22)
-        bw = max(2, int(size * 0.11))
-        bh = int(size * 0.56)
-        by = int(size * 0.22)
-        cx = size // 2
-        # Links
-        draw2.rounded_rectangle([m, by, m+bw, by+bh], radius=max(1,bw//3), fill=(38, 33, 92, 255))
-        # Rechts
-        rx2 = size - m - bw
-        draw2.rounded_rectangle([rx2, by, rx2+bw, by+bh], radius=max(1,bw//3), fill=(38, 33, 92, 255))
-        # Midden balk
-        mby = by + int(bh * 0.44)
-        mbh = max(2, int(size * 0.09))
-        draw2.rounded_rectangle([m, mby, rx2+bw, mby+mbh], radius=max(1,mbh//3), fill=(38, 33, 92, 255))
-        # Accent dot
-        ad = max(3, int(size * 0.07))
-        draw2.ellipse([rx2+bw-ad, int(size*0.08), rx2+bw+ad, int(size*0.08)+ad*2], fill=(124, 106, 247, 255))
 
-        import io
-        buf = io.BytesIO()
-        img.save(buf, format="PNG")
-        return buf.getvalue()
+def make_png_bytes(size: int) -> bytes:
+    width = height = size
+    raw = bytearray()
 
-    except ImportError:
-        print("Pillow niet gevonden — installeer met: pip3 install Pillow")
-        return None
+    radius = max(2, int(size * 0.22))
 
-def build_icns(output_path):
-    sizes = [16, 32, 64, 128, 256, 512, 1024]
-    icns_types = {
-        16:   (b'icp4', b'ic11'),
-        32:   (b'icp5', b'ic12'),
-        64:   (b'icp6', None),
-        128:  (b'ic07', b'ic13'),
-        256:  (b'ic08', b'ic14'),
-        512:  (b'ic09', b'ic15'),
-        1024: (b'ic10', None),
-    }
+    for y in range(height):
+        raw.append(0)  # filter type none
+        t = y / max(1, (height - 1))
+        r = int(155 + (83 - 155) * t)
+        g = int(142 + (74 - 142) * t)
+        b = int(249 + (183 - 249) * t)
 
+        for x in range(width):
+            # Rounded rectangle alpha mask
+            alpha = 255
+            if x < radius and y < radius:
+                dx, dy = radius - x, radius - y
+                if dx * dx + dy * dy > radius * radius:
+                    alpha = 0
+            elif x >= width - radius and y < radius:
+                dx, dy = x - (width - radius - 1), radius - y
+                if dx * dx + dy * dy > radius * radius:
+                    alpha = 0
+            elif x < radius and y >= height - radius:
+                dx, dy = radius - x, y - (height - radius - 1)
+                if dx * dx + dy * dy > radius * radius:
+                    alpha = 0
+            elif x >= width - radius and y >= height - radius:
+                dx, dy = x - (width - radius - 1), y - (height - radius - 1)
+                if dx * dx + dy * dy > radius * radius:
+                    alpha = 0
+
+            rr, gg, bb = r, g, b
+
+            # Draw H lettermark
+            m = int(size * 0.22)
+            bw = max(2, int(size * 0.11))
+            bh = int(size * 0.56)
+            by = int(size * 0.22)
+            rx = size - m - bw
+            mby = by + int(bh * 0.44)
+            mbh = max(2, int(size * 0.09))
+
+            in_left = (m <= x <= m + bw) and (by <= y <= by + bh)
+            in_right = (rx <= x <= rx + bw) and (by <= y <= by + bh)
+            in_mid = (m <= x <= rx + bw) and (mby <= y <= mby + mbh)
+            if in_left or in_right or in_mid:
+                rr, gg, bb = 38, 33, 92
+                alpha = 255
+
+            # Accent dot
+            ad = max(3, int(size * 0.07))
+            cx = rx + bw
+            cy = int(size * 0.08) + ad
+            if (x - cx) ** 2 + (y - cy) ** 2 <= ad * ad:
+                rr, gg, bb = 124, 106, 247
+                alpha = 255
+
+            raw.extend((rr, gg, bb, alpha))
+
+    ihdr = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)  # RGBA
+    idat = zlib.compress(bytes(raw), level=9)
+    png = b"\x89PNG\r\n\x1a\n" + _png_chunk(b"IHDR", ihdr) + _png_chunk(b"IDAT", idat) + _png_chunk(b"IEND", b"")
+    return png
+
+
+def build_icns(output_path: str) -> bool:
     tmpdir = "/tmp/hohoh_icons"
-    os.makedirs(tmpdir, exist_ok=True)
-
-    # Probeer eerst met iconutil (native macOS, het beste resultaat)
-    iconset = tmpdir + "/AppIcon.iconset"
+    iconset = os.path.join(tmpdir, "AppIcon.iconset")
     os.makedirs(iconset, exist_ok=True)
 
-    pngs = {}
-    for sz in sizes:
-        data = make_png_bytes(sz)
-        if data:
-            p = f"{iconset}/icon_{sz}x{sz}.png"
-            with open(p, "wb") as f:
-                f.write(data)
-            pngs[sz] = data
-            # @2x versie
-            if sz <= 512:
-                p2 = f"{iconset}/icon_{sz//1 if sz==16 else sz}x{sz//1 if sz==16 else sz}@2x.png"
-                # gewoon kopieer voor nu
-            print(f"  ✓ PNG {sz}×{sz}")
+    mapping = [
+        (16, "icon_16x16.png"),
+        (32, "icon_16x16@2x.png"),
+        (32, "icon_32x32.png"),
+        (64, "icon_32x32@2x.png"),
+        (128, "icon_128x128.png"),
+        (256, "icon_128x128@2x.png"),
+        (256, "icon_256x256.png"),
+        (512, "icon_256x256@2x.png"),
+        (512, "icon_512x512.png"),
+        (1024, "icon_512x512@2x.png"),
+    ]
 
-    if shutil.which("iconutil"):
-        result = subprocess.run(
-            ["iconutil", "-c", "icns", iconset, "-o", output_path],
-            capture_output=True, text=True
-        )
-        if result.returncode == 0:
-            print(f"\n✅ AppIcon.icns aangemaakt via iconutil: {output_path}")
-            return True
-        else:
-            print(f"iconutil fout: {result.stderr}")
+    for sz, filename in mapping:
+        with open(os.path.join(iconset, filename), "wb") as f:
+            f.write(make_png_bytes(sz))
 
-    # Fallback: bouw ICNS handmatig
-    chunks = []
-    for sz, data in pngs.items():
-        tag = icns_types[sz][0]
-        compressed = zlib.compress(data)
-        # ICNS gebruikt raw PNG voor moderne formaten
-        size_bytes = struct.pack(">I", 8 + len(data))
-        chunks.append(tag + size_bytes[1:] + data)  # vereenvoudigd
+    if not shutil.which("iconutil"):
+        print("iconutil niet gevonden op dit systeem.")
+        return False
 
-    # Schrijf geldig ICNS bestand
-    body = b''.join(chunks)
-    header = b'icns' + struct.pack(">I", 8 + len(body))
-    with open(output_path, "wb") as f:
-        f.write(header + body)
-    print(f"\n✅ AppIcon.icns aangemaakt (handmatig): {output_path}")
+    result = subprocess.run(["iconutil", "-c", "icns", iconset, "-o", output_path], capture_output=True, text=True)
+    if result.returncode != 0:
+        print("iconutil fout:")
+        print(result.stderr.strip())
+        return False
+
     return True
+
 
 if __name__ == "__main__":
     out = sys.argv[1] if len(sys.argv) > 1 else "AppIcon.icns"
-    print("🎨 HohohSolutions CRM — icoon generator")
-    print("=" * 40)
-    build_icns(out)
+    print("🎨 HohohSolutions CRM — icon generator")
+    ok = build_icns(out)
+    if ok:
+        print(f"✅ AppIcon.icns aangemaakt: {out}")
+    else:
+        print("❌ Icon generatie mislukt")
+        sys.exit(1)
