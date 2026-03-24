@@ -1,7 +1,8 @@
 // ─── STATE ───────────────────────────────────────────────────────────────────
 let db = {
   klanten: [], projecten: [], taken: [], facturen: [],
-  apis: [], afspraken: [], todoLists: [], meetings: []
+  apis: [], afspraken: [], todoLists: [], meetings: [],
+  uitgaven: [], inkomsten: []
 };
 
 let currentPage = 'dashboard';
@@ -14,7 +15,7 @@ let autoFollowupTriggeredToday = false;
 
 function normalizeDbShape() {
   if (!db || typeof db !== 'object') db = {};
-  ['klanten','projecten','taken','facturen','apis','afspraken','todoLists','meetings'].forEach(k => {
+  ['klanten','projecten','taken','facturen','apis','afspraken','todoLists','meetings','uitgaven','inkomsten'].forEach(k => {
     if (!Array.isArray(db[k])) db[k] = [];
   });
   if (!db.roadmaps || typeof db.roadmaps !== 'object') db.roadmaps = {};
@@ -56,7 +57,7 @@ function showPage(name) {
   currentPage = name;
   document.getElementById('topbar-title').textContent = {
     dashboard: 'Dashboard', klanten: 'Klanten', projecten: 'Projecten',
-    taken: 'Taken', facturen: 'Facturen', apilog: 'API & Tools',
+    taken: 'Taken', facturen: 'Facturen', financieel: 'Financieel overzicht', apilog: 'API & Tools',
     tijdlijn: 'Tijdlijn', roadmap: 'Roadmap', agenda: 'Agenda & Afspraken',
     todo: 'To-Do Lijsten', meetings: 'Meeting Notities'
   }[name] || name;
@@ -77,6 +78,10 @@ function openAddModal() {
   }
   if (currentPage === 'agenda') {
     openAddAfspraakModal();
+    return;
+  }
+  if (currentPage === 'financieel') {
+    openFinKeuzeModal();
     return;
   }
   const map = {
@@ -118,6 +123,78 @@ function clearForm(id) {
   if (btwEl) btwEl.value = '21';
 }
 
+// ─── ARCH MODALS (i.p.v. prompt/confirm — WKWebView) ─────────────────────────
+let _archInputResolve = null;
+let _archInputFields = [];
+function escapeArchAttr(s) {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+function openArchInputModal(title, fields) {
+  return new Promise((resolve) => {
+    _archInputResolve = resolve;
+    _archInputFields = fields;
+    const titleEl = document.getElementById('arch-input-title');
+    if (titleEl) titleEl.textContent = title;
+    const container = document.getElementById('arch-input-fields');
+    if (!container) { resolve(null); return; }
+    container.innerHTML = fields.map((f) => {
+      const fid = 'arch-in-' + f.id;
+      if (f.type === 'select') {
+        const opts = (f.options || []).map((o) => {
+          const sel = String(o.v) === String(f.value) ? ' selected' : '';
+          return `<option value="${escapeArchAttr(o.v)}"${sel}>${escapeArchAttr(o.label)}</option>`;
+        }).join('');
+        return `<div class="form-group full"><label>${escapeArchAttr(f.label)}</label><select id="${fid}">${opts}</select></div>`;
+      }
+      const inputType = f.type === 'date' ? 'date' : 'text';
+      const ph = escapeArchAttr(f.placeholder || '');
+      const val = escapeArchAttr(f.value != null ? f.value : '');
+      return `<div class="form-group full"><label>${escapeArchAttr(f.label)}</label><input id="${fid}" type="${inputType}" placeholder="${ph}" value="${val}"></div>`;
+    }).join('');
+    document.getElementById('modal-arch-input').classList.add('open');
+    setTimeout(() => {
+      const first = container.querySelector('input,select,textarea');
+      if (first) first.focus();
+    }, 50);
+  });
+}
+function closeArchInputModal(submit) {
+  document.getElementById('modal-arch-input').classList.remove('open');
+  if (!submit && _archInputResolve) {
+    _archInputResolve(null);
+    _archInputResolve = null;
+  }
+}
+function submitArchInputModal() {
+  const out = {};
+  for (const f of _archInputFields) {
+    const el = document.getElementById('arch-in-' + f.id);
+    out[f.id] = el ? el.value : '';
+  }
+  document.getElementById('modal-arch-input').classList.remove('open');
+  if (_archInputResolve) {
+    _archInputResolve(out);
+    _archInputResolve = null;
+  }
+}
+
+let _archConfirmResolve = null;
+function openArchConfirmModal(message) {
+  return new Promise((resolve) => {
+    _archConfirmResolve = resolve;
+    const msgEl = document.getElementById('arch-confirm-message');
+    if (msgEl) msgEl.textContent = message;
+    document.getElementById('modal-arch-confirm').classList.add('open');
+  });
+}
+function closeArchConfirmModal(ok) {
+  document.getElementById('modal-arch-confirm').classList.remove('open');
+  if (_archConfirmResolve) {
+    _archConfirmResolve(!!ok);
+    _archConfirmResolve = null;
+  }
+}
+
 function populateKlantSelects() {
   ['p-klant','t-klant','f-klant','a-klant'].forEach(id => {
     const el = document.getElementById(id);
@@ -134,6 +211,19 @@ function populateProjectSelect() {
   el.innerHTML = '<option value="">— Geen —</option>' + db.projecten.map(p =>
     `<option value="${p.id}">${p.naam}</option>`
   ).join('');
+}
+
+function populateFactuurProjectSelect() {
+  const el = document.getElementById('f-project');
+  if (!el) return;
+  const klantId = (document.getElementById('f-klant') || {}).value || '';
+  let list = db.projecten;
+  if (klantId) list = list.filter((p) => p.klantId === klantId);
+  const cur = el.value;
+  el.innerHTML = '<option value="">— Geen —</option>' + list.map((p) =>
+    `<option value="${p.id}">${p.naam}</option>`
+  ).join('');
+  if (cur && list.some((p) => p.id === cur)) el.value = cur;
 }
 
 // ─── SAVE RECORDS ─────────────────────────────────────────────────────────────
@@ -221,7 +311,8 @@ function saveFactuur() {
     verval: v('f-verval'), termijn: v('f-termijn'),
     status: v('f-status'),
     ref: v('f-ref'), betaalwijze: v('f-betaalwijze'),
-    note: v('f-note')
+    note: v('f-note'),
+    attachments: facAttachments.map((a) => ({ ...a }))
   };
   if (!obj.num || !obj.klantId) { toast('❌ Vul nummer en klant in'); return; }
   upsert('facturen', obj);
@@ -255,8 +346,8 @@ function upsert(col, obj) {
 }
 
 // ─── DELETE ───────────────────────────────────────────────────────────────────
-function del(col, id) {
-  if (!confirm('Verwijderen?')) return;
+async function del(col, id) {
+  if (!(await openArchConfirmModal('Verwijderen?'))) return;
   db[col] = db[col].filter(r => r.id !== id);
   save();
   closeDetail();
@@ -299,7 +390,10 @@ function render() {
   if (currentPage === 'facturen') renderFacturen();
   if (currentPage === 'tijdlijn') renderTijdlijn();
   if (currentPage === 'roadmap') renderRoadmap();
-  if (currentPage === 'apilog') renderApi();
+  if (currentPage === 'apilog') {
+    loadFollowupMailSettings();
+    renderApi();
+  }
   if (currentPage === 'todo') renderTodoPage();
   if (currentPage === 'meetings') renderMeetingsSidebar();
   if (currentPage === 'agenda') {
@@ -307,6 +401,7 @@ function render() {
     renderAgendaDayList();
     renderAgendaUpcoming();
   }
+  if (currentPage === 'financieel') renderFinancieel();
   runAutomaticFollowupEngine();
 }
 
@@ -584,7 +679,18 @@ function openFactuurDetail(id) {
       ${row('Termijn', f.termijn ? f.termijn+' dagen' : '—')}
     </div>
     ${f.note ? `<div class="detail-section"><div class="detail-section-title">Notitie</div><div style="font-size:13px;color:var(--text2);line-height:1.6">${f.note}</div></div>` : ''}
-    <div style="display:flex;gap:8px;margin-top:16px">
+    ${(f.attachments && f.attachments.length) ? `<div class="detail-section"><div class="detail-section-title">Bijlagen / links</div>
+      ${f.attachments.map((a) => `<div class="file-entry" style="margin-bottom:6px">
+        <div class="file-icon">${({ pdf:'📄', figma:'🎨', github:'💻', drive:'📁', notion:'📝', link:'🔗', other:'📎' }[a.type] || '📎')}</div>
+        <div style="flex:1;min-width:0">
+          <div class="file-name">${a.naam || '—'}</div>
+          ${a.note ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">${a.note}</div>` : ''}
+        </div>
+        ${a.url ? `<a href="${a.url}" target="_blank" rel="noopener" class="btn btn-ghost" style="padding:4px 10px;font-size:12px">Openen</a>` : ''}
+      </div>`).join('')}
+    </div>` : ''}
+    <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="editFactuur('${id}')">Bewerken</button>
       <button class="btn btn-primary" onclick="changeFactuurStatus('${id}','betaald')">✓ Betaald</button>
       <button class="btn btn-ghost" onclick="changeFactuurStatus('${id}','vervallen')">Vervallen</button>
       <button class="btn btn-danger" onclick="del('facturen','${id}')">Verwijder</button>
@@ -885,7 +991,89 @@ function computeNextFollowupDate(cadence, fromDate) {
   return base.toISOString().slice(0,10);
 }
 
-function sendProjectFollowupEmail(projectId, isAuto = false) {
+function escHtml(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function getFollowupMailConfig() {
+  const url = (localStorage.getItem('hohoh_followup_url') || (typeof window !== 'undefined' && window.__HOHOH_FOLLOWUP_URL__) || '').trim();
+  const secret = (localStorage.getItem('hohoh_followup_secret') || (typeof window !== 'undefined' && window.__HOHOH_FOLLOWUP_SECRET__) || '').trim();
+  return { url, secret };
+}
+
+function loadFollowupMailSettings() {
+  const { url, secret } = getFollowupMailConfig();
+  const elU = document.getElementById('followup-url');
+  const elS = document.getElementById('followup-secret');
+  if (elU) elU.value = url;
+  if (elS) elS.value = secret;
+}
+
+function saveFollowupMailSettings() {
+  const elU = document.getElementById('followup-url');
+  const elS = document.getElementById('followup-secret');
+  const u = (elU && elU.value) ? elU.value.trim() : '';
+  const s = (elS && elS.value) ? elS.value.trim() : '';
+  localStorage.setItem('hohoh_followup_url', u);
+  localStorage.setItem('hohoh_followup_secret', s);
+  const st = document.getElementById('followup-settings-status');
+  if (st) {
+    st.textContent = '✓ Opgeslagen';
+    setTimeout(() => { st.textContent = ''; }, 2500);
+  }
+  toast('✓ Opvolgmail-instellingen opgeslagen');
+}
+
+/** Platte tekst + HTML met voortgangsbalk (e-mailclients: inline styles) */
+function buildFollowupEmailBodies(p, k, delivery) {
+  const progress = Math.max(0, Math.min(100, parseInt(p.progress || 0, 10)));
+  const naam = escHtml(p.naam);
+  const fase = escHtml(delivery.phaseLabel);
+  const voornaam = escHtml(k.voornaam || '');
+  const eta = escHtml(delivery.etaText);
+
+  const text =
+`Beste ${k.voornaam || ''},
+
+Hierbij een statusupdate van je project:
+
+- Project: ${p.naam}
+- Huidige fase: ${delivery.phaseLabel}
+- Voortgang: ${progress}%
+- Geschatte oplevering: ${delivery.etaText}
+
+We houden je op de hoogte van de volgende stap.
+
+Groeten,
+HohohSolutions`;
+
+  const html = `<!DOCTYPE html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;line-height:1.5;color:#1a1a1a;">
+<p>Beste ${voornaam || 'klant'},</p>
+<p>Hierbij een statusupdate van je project:</p>
+<table cellpadding="0" cellspacing="0" style="margin:16px 0;font-size:14px;">
+<tr><td style="padding:4px 0;color:#666;">Project</td><td style="padding:4px 0;"><strong>${naam}</strong></td></tr>
+<tr><td style="padding:4px 0;color:#666;">Huidige fase</td><td style="padding:4px 0;">${fase}</td></tr>
+<tr><td style="padding:4px 0;color:#666;">Geschatte oplevering</td><td style="padding:4px 0;">${eta}</td></tr>
+</table>
+<p style="margin:12px 0 6px;font-size:12px;color:#666;">Voortgang</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:420px;border-collapse:collapse;">
+<tr><td style="background:#e8e6f4;border-radius:10px;height:22px;overflow:hidden;padding:0;">
+<div style="width:${progress}%;max-width:100%;background:linear-gradient(90deg,#7c6cf6,#534ab7);height:22px;border-radius:10px;"></div>
+</td></tr>
+<tr><td style="font-size:13px;color:#534ab7;padding-top:8px;font-weight:600;">${progress}%</td></tr>
+</table>
+<p style="margin-top:20px;">We houden je op de hoogte van de volgende stap.</p>
+<p>Groeten,<br><strong>HohohSolutions</strong></p>
+</body></html>`;
+
+  return { text, html };
+}
+
+async function sendProjectFollowupEmail(projectId, isAuto = false) {
   const p = db.projecten.find(x => x.id === projectId);
   if (!p) return;
   const k = db.klanten.find(x => x.id === p.klantId);
@@ -894,7 +1082,53 @@ function sendProjectFollowupEmail(projectId, isAuto = false) {
     return;
   }
   const delivery = getProjectDeliveryStatus(p, db.taken.filter(t => t.projectId === projectId), db.roadmaps[projectId] || []);
-  const subject = encodeURIComponent(`Opvolging project ${p.naam} — ${delivery.phaseLabel}`);
+  const subjectPlain = `Opvolging project ${p.naam} — ${delivery.phaseLabel}`;
+  const { url, secret } = getFollowupMailConfig();
+
+  const markSent = () => {
+    p.followupLastSent = today();
+    p.followupNextDue = p.followupCadence && p.followupCadence !== 'uit'
+      ? computeNextFollowupDate(p.followupCadence, today())
+      : '';
+    save();
+    if (!isAuto) {
+      render();
+      toast('✓ Opvolgmail verzonden');
+    }
+  };
+
+  if (url && secret) {
+    const { text, html } = buildFollowupEmailBodies(p, k, delivery);
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Followup-Secret': secret,
+        },
+        body: JSON.stringify({
+          to: k.email,
+          subject: subjectPlain,
+          text,
+          html,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast(`❌ Verzenden mislukt: ${data.error || res.status}`);
+        return;
+      }
+      markSent();
+      if (isAuto) toast(`⏰ Opvolgmail verzonden: ${p.naam}`);
+    } catch (e) {
+      toast(`❌ Netwerkfout: ${e.message || 'onbekend'}`);
+    }
+    return;
+  }
+
+  if (isAuto) return;
+
+  const subject = encodeURIComponent(subjectPlain);
   const body = encodeURIComponent(
 `Beste ${k.voornaam || ''},
 
@@ -916,14 +1150,14 @@ HohohSolutions`);
     ? computeNextFollowupDate(p.followupCadence, today())
     : '';
   save();
-  if (!isAuto) {
-    render();
-    toast('✓ Opvolgmail voorbereid');
-  }
+  render();
+  toast('✓ Opvolgmail voorbereid (Mail-app)');
 }
 
 function runAutomaticFollowupEngine() {
   if (autoFollowupTriggeredToday) return;
+  const { url, secret } = getFollowupMailConfig();
+  if (!url || !secret) return;
   const todayStr = today();
   const due = db.projecten.find(p =>
     p.followupCadence && p.followupCadence !== 'uit' &&
@@ -935,8 +1169,7 @@ function runAutomaticFollowupEngine() {
   const k = db.klanten.find(x => x.id === due.klantId);
   if (!k || !k.email) return;
   autoFollowupTriggeredToday = true;
-  sendProjectFollowupEmail(due.id, true);
-  toast(`⏰ Automatische opvolging klaar voor ${due.naam}`);
+  sendProjectFollowupEmail(due.id, true).catch(() => {});
 }
 
 // KANBAN
@@ -974,9 +1207,14 @@ function renderArchKanban(id) {
   }).join('');
 }
 
-function addKanbanCard(pid, col) {
-  const naam = prompt('Taaknaam:'); if(!naam) return;
-  const desc = prompt('Beschrijving (optioneel):') || '';
+async function addKanbanCard(pid, col) {
+  const data = await openArchInputModal('Nieuwe taak', [
+    { id: 'naam', label: 'Taaknaam', placeholder: 'Korte titel' },
+    { id: 'desc', label: 'Beschrijving (optioneel)', placeholder: '' }
+  ]);
+  if (!data || !data.naam || !data.naam.trim()) return;
+  const naam = data.naam.trim();
+  const desc = (data.desc || '').trim();
   if (!db.arch[pid]) db.arch[pid] = { kanban:{todo:[],inprogress:[],review:[],done:[]}, tech:[], bestanden:[], tijdlijn:[], notities:'' };
   if (!db.arch[pid].kanban[col]) db.arch[pid].kanban[col] = [];
   db.arch[pid].kanban[col].push({ naam, desc, prio:'normaal', datum:'' });
@@ -1046,16 +1284,23 @@ function renderArchRoadmap(id) {
   }).join('');
 }
 
-function addArchMilestone() {
+async function addArchMilestone() {
   const id = currentArchProjectId;
-  const naam = prompt('Naam van de mijlpaal:'); if(!naam) return;
-  const datum = prompt('Deadline (YYYY-MM-DD, optioneel):') || '';
-  const desc = prompt('Beschrijving (optioneel):') || '';
+  if (!db.roadmaps[id]) db.roadmaps[id] = [];
+  const data = await openArchInputModal('Nieuwe mijlpaal', [
+    { id: 'naam', label: 'Naam', placeholder: 'Mijlpaal' },
+    { id: 'datum', label: 'Deadline (optioneel)', type: 'date' },
+    { id: 'desc', label: 'Beschrijving (optioneel)', placeholder: '' }
+  ]);
+  if (!data || !data.naam || !data.naam.trim()) return;
+  const naam = data.naam.trim();
+  const datum = (data.datum || '').trim();
+  const desc = (data.desc || '').trim();
   db.roadmaps[id].push({ naam, datum, desc, status:'open', items:[], _open:true });
   save(); renderArchRoadmap(id);
 }
-function delArchMs(mi) {
-  if(!confirm('Verwijderen?')) return;
+async function delArchMs(mi) {
+  if (!(await openArchConfirmModal('Verwijderen?'))) return;
   db.roadmaps[currentArchProjectId].splice(mi,1);
   save(); renderArchRoadmap(currentArchProjectId);
 }
@@ -1153,11 +1398,17 @@ function renderArchTijdlijn(id) {
     </div>`;
 }
 
-function addTijdlijnEvent() {
+async function addTijdlijnEvent() {
   const id = currentArchProjectId;
-  const naam = prompt('Event naam:'); if(!naam) return;
-  const datum = prompt('Datum (YYYY-MM-DD):') || today();
-  const desc = prompt('Beschrijving (optioneel):') || '';
+  const data = await openArchInputModal('Manueel event', [
+    { id: 'naam', label: 'Eventnaam', placeholder: '' },
+    { id: 'datum', label: 'Datum', type: 'date', value: today() },
+    { id: 'desc', label: 'Beschrijving (optioneel)', placeholder: '' }
+  ]);
+  if (!data || !data.naam || !data.naam.trim()) return;
+  const naam = data.naam.trim();
+  const datum = (data.datum || '').trim() || today();
+  const desc = (data.desc || '').trim();
   if (!db.arch[id]) db.arch[id] = { kanban:{todo:[],inprogress:[],review:[],done:[]}, tech:[], bestanden:[], tijdlijn:[], notities:'' };
   db.arch[id].tijdlijn.push({ naam, datum, desc, done:false });
   save(); renderArchTijdlijn(id);
@@ -1183,12 +1434,23 @@ function renderArchTech(id) {
     </div>`).join('') || `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">⌥</div><div class="empty-text">Nog geen technologieën</div></div>`;
 }
 
-function addTechItem() {
+async function addTechItem() {
   const id = currentArchProjectId;
-  const naam = prompt('Technologie / Tool:'); if(!naam) return;
-  const cat = prompt('Categorie (frontend/backend/database/devops/api/design/testing/other):') || 'other';
-  const versie = prompt('Versie (optioneel):') || '';
-  const note = prompt('Notitie (optioneel):') || '';
+  const data = await openArchInputModal('Technologie', [
+    { id: 'naam', label: 'Technologie / tool', placeholder: 'React, PostgreSQL…' },
+    { id: 'cat', label: 'Categorie', type: 'select', value: 'other', options: [
+      { v: 'frontend', label: 'Frontend' }, { v: 'backend', label: 'Backend' }, { v: 'database', label: 'Database' },
+      { v: 'devops', label: 'DevOps' }, { v: 'api', label: 'API / integratie' }, { v: 'design', label: 'Design' },
+      { v: 'testing', label: 'Testing' }, { v: 'other', label: 'Overig' }
+    ] },
+    { id: 'versie', label: 'Versie (optioneel)', placeholder: '1.0' },
+    { id: 'note', label: 'Notitie (optioneel)', placeholder: '' }
+  ]);
+  if (!data || !data.naam || !data.naam.trim()) return;
+  const naam = data.naam.trim();
+  const cat = (data.cat || 'other').trim() || 'other';
+  const versie = (data.versie || '').trim();
+  const note = (data.note || '').trim();
   if (!db.arch[id]) db.arch[id] = { kanban:{todo:[],inprogress:[],review:[],done:[]}, tech:[], bestanden:[], tijdlijn:[], notities:'' };
   db.arch[id].tech.push({ naam, cat, versie, note });
   save(); renderArchTech(id);
@@ -1216,12 +1478,34 @@ function renderArchBestanden(id) {
     `<div class="empty"><div class="empty-icon">📁</div><div class="empty-text">Nog geen bestanden of links</div></div>`;
 }
 
-function addBestand() {
+function bestandSuggestDefaults() {
+  const pid = currentArchProjectId;
+  const p = db.projecten.find((x) => x.id === pid);
+  const k = p ? db.klanten.find((x) => x.id === p.klantId) : null;
+  const naam = p ? `Document — ${p.naam}` : 'Link';
+  const url = (p && p.githubUrl) ? p.githubUrl : (k && k.website) ? k.website : '';
+  const type = (p && p.githubUrl) ? 'github' : 'link';
+  const note = k ? `${k.voornaam || ''} ${k.achternaam || ''}`.trim() : '';
+  return { naam, url, type, note };
+}
+
+async function addBestand() {
   const id = currentArchProjectId;
-  const naam = prompt('Naam / beschrijving:'); if(!naam) return;
-  const url = prompt('URL / link (optioneel):') || '';
-  const type = prompt('Type (pdf/figma/github/drive/notion/link/other):') || 'link';
-  const note = prompt('Notitie (optioneel):') || '';
+  const d = bestandSuggestDefaults();
+  const data = await openArchInputModal('Bestand of link', [
+    { id: 'naam', label: 'Naam / beschrijving', value: d.naam },
+    { id: 'url', label: 'URL (optioneel)', value: d.url, placeholder: 'https://…' },
+    { id: 'type', label: 'Type', type: 'select', value: d.type, options: [
+      { v: 'pdf', label: 'PDF' }, { v: 'figma', label: 'Figma' }, { v: 'github', label: 'GitHub' },
+      { v: 'drive', label: 'Drive' }, { v: 'notion', label: 'Notion' }, { v: 'link', label: 'Link' }, { v: 'other', label: 'Overig' }
+    ] },
+    { id: 'note', label: 'Notitie (optioneel)', value: d.note }
+  ]);
+  if (!data || !data.naam || !data.naam.trim()) return;
+  const naam = data.naam.trim();
+  const url = (data.url || '').trim();
+  const type = (data.type || 'link').trim() || 'link';
+  const note = (data.note || '').trim();
   if (!db.arch[id]) db.arch[id] = { kanban:{todo:[],inprogress:[],review:[],done:[]}, tech:[], bestanden:[], tijdlijn:[], notities:'' };
   db.arch[id].bestanden.push({ naam, url, type, note, datum:today() });
   save(); renderArchBestanden(id);
@@ -1428,6 +1712,393 @@ function globalSearch(q) {
       `${f.num} ${f.desc}`.toLowerCase().includes(q)
     ));
   }
+  if (currentPage === 'financieel') {
+    renderFinancieel(q);
+  }
+}
+
+// ─── FINANCIEEL (indicatief — o.a. naar beroepskosten.be) ────────────────────
+let finJaar = new Date().getFullYear();
+let finEditUitgaveId = null;
+let finEditInkomenId = null;
+
+/** Categorieën in lijn met rubrieken op beroepskosten.be; percentages = ruwe indicatie, geen fiscaal advies. */
+const FIN_CATEGORY_META = {
+  belastingen_verzekeringen: { label: 'Belastingen & verzekeringen', groep: 'Aanbevolen', aftrekPct: 100, risico: 'laag', hint: 'Bijv. VAPZ, sociale bijdragen — vaak volledig aftrekbaar als beroepskost.' },
+  eten_drinken: { label: 'Eten & drinken (restaurant zakelijk)', groep: 'Eten & drinken', aftrekPct: 50, risico: 'midden', hint: 'Vooral aftrekbaar bij uitnodiging (potentiële) klanten of leveranciers; hou bewijs en context bij.' },
+  financien: { label: 'Financiële kosten', groep: 'Financiën', aftrekPct: 100, risico: 'laag', hint: 'Bankkosten, rente zakelijk krediet indien professioneel.' },
+  gereedschap: { label: 'Gereedschap & klein materiaal', groep: 'Gereedschap', aftrekPct: 100, risico: 'laag', hint: 'Duidelijk verband met de activiteit.' },
+  informatica: { label: 'Informatica (PC, laptop, software)', groep: 'Informatica', aftrekPct: 100, risico: 'laag', hint: 'Sterk verband met vrijwel elke zelfstandige activiteit; bewaar facturen.' },
+  kantoor: { label: 'Kantoorkosten', groep: 'Kantoorkosten', aftrekPct: 100, risico: 'laag', hint: 'Huur kantoor, kantoormateriaal, niet-persoonlijke abonnementen.' },
+  kledij: { label: 'Kledij & uitrusting', groep: 'Kledij', aftrekPct: 30, risico: 'midden', hint: 'Alleen in zoverre uitsluitend of overwegend beroepsmatig; controlegevoelig.' },
+  marketing: { label: 'Marketing & reclame', groep: 'Marketing', aftrekPct: 100, risico: 'laag', hint: 'Reclame, website, beurzen — typisch aftrekbaar.' },
+  opleiding: { label: 'Opleiding (beroepsgericht)', groep: 'Opleiding', aftrekPct: 100, risico: 'laag', hint: 'Moet link hebben met huidige of toekomstige activiteit.' },
+  reizen: { label: 'Reizen (zakelijk)', groep: 'Reizen', aftrekPct: 100, risico: 'midden', hint: 'Enkel professioneel deel; documenteer doel en dagen.' },
+  telecom: { label: 'Telefoon & internet', groep: 'Telecom', aftrekPct: 50, risico: 'laag', hint: 'Professioneel aandeel vaak aftrekbaar; gemengd gebruik = verdeelsleutel.' },
+  terrein_verbouw: { label: 'Terreinen & verbouwing', groep: 'Terrein', aftrekPct: null, risico: 'midden', hint: 'Sterk casusafhankelijk — percentage niet automatisch in te vullen.' },
+  thuiskantoor: { label: 'Thuiskantoor', groep: 'Thuiskantoor', aftrekPct: null, risico: 'midden', hint: 'Forfait of werkelijke kosten volgens regels; vaak beperkt percentage van woning.' },
+  vergoedingen: { label: 'Vergoedingen', groep: 'Vergoedingen', aftrekPct: 100, risico: 'midden', hint: 'Kilometervergoeding, onkostennota’s — binnen wettelijke limieten.' },
+  vervoer: { label: 'Vervoer (openbaar, taxi, …)', groep: 'Vervoer', aftrekPct: 100, risico: 'midden', hint: 'Zakelijke verplaatsingen; niet woon-werk tenzij uitzondering.' },
+  voertuig: { label: 'Voertuig (auto, leasing)', groep: 'Voertuig', aftrekPct: null, risico: 'hoog', hint: 'Beroepsmatig % + bewijs; veel controles — laat berekening nakijken door een accountant.' },
+  werkplek: { label: 'Werkplek & meubilair', groep: 'Werkplek', aftrekPct: 100, risico: 'laag', hint: 'Bureau, stoel, lamp voor de professionele ruimte.' },
+  fitness_lifestyle: { label: 'Fitness / sport / lifestyle', groep: 'Valkuil', aftrekPct: 0, risico: 'hoog', hint: 'Zoals op beroepskosten.be: meestal géén of zeer beperkte aftrek; hoge kans op vragen bij controle.' },
+  overig: { label: 'Niet geclassificeerd / overig', groep: 'Overig', aftrekPct: 50, risico: 'hoog', hint: 'Onduidelijke posten vallen sneller op bij audit — kies een specifiekere categorie indien mogelijk.' }
+};
+
+function finMeta(cat) {
+  return FIN_CATEGORY_META[cat] || FIN_CATEGORY_META.overig;
+}
+
+function finEffectieveAftrekPct(u) {
+  if (u.aftrekOverride != null && u.aftrekOverride !== '' && !Number.isNaN(Number(u.aftrekOverride))) {
+    const n = Math.max(0, Math.min(100, Number(u.aftrekOverride)));
+    return n;
+  }
+  const m = finMeta(u.categorie);
+  return m.aftrekPct;
+}
+
+function finGeschatAftrekbaarBedrag(u) {
+  const b = parseFloat(u.bedrag) || 0;
+  const p = finEffectieveAftrekPct(u);
+  if (p == null) return null;
+  return Math.round(b * p) / 100;
+}
+
+function finUitgavenVoorJaar(jaar) {
+  const y = String(jaar);
+  return (db.uitgaven || []).filter((u) => (u.datum || '').startsWith(y));
+}
+
+function finInkomstenVoorJaar(jaar) {
+  const y = String(jaar);
+  return (db.inkomsten || []).filter((i) => (i.datum || '').startsWith(y));
+}
+
+function finEvaluateRisks(jaar) {
+  const list = finUitgavenVoorJaar(jaar);
+  const alerts = [];
+  let maxLevel = 'ok';
+
+  let somHoog = 0;
+  let somMidden = 0;
+  let countHoog = 0;
+  const hoogDetails = [];
+
+  list.forEach((u) => {
+    const m = finMeta(u.categorie);
+    const b = parseFloat(u.bedrag) || 0;
+    if (m.risico === 'hoog') {
+      somHoog += b;
+      countHoog++;
+      if (b >= 200) {
+        hoogDetails.push(`“${m.label}”: €${b.toLocaleString('nl-BE')}${u.omschrijving ? ' — ' + u.omschrijving.slice(0, 36) : ''}`);
+      }
+    } else if (m.risico === 'midden') {
+      somMidden += b;
+    }
+  });
+
+  if (hoogDetails.length) {
+    const txt = hoogDetails.slice(0, 4).join(' · ') + (hoogDetails.length > 4 ? ' …' : '');
+    alerts.push({
+      level: 'danger',
+      text: `Hoge controlekans (indicatief): ${txt}. Controleer bewijs en richtlijnen op beroepskosten.be.`
+    });
+    maxLevel = 'danger';
+  }
+
+  if (somHoog >= 800) {
+    alerts.push({
+      level: 'danger',
+      text: `Totaal risicovolle categorieën (hoog) dit jaar: €${somHoog.toLocaleString('nl-BE')}. Overweeg afstemming met je accountant.`
+    });
+    maxLevel = 'danger';
+  } else if (somHoog >= 400) {
+    alerts.push({ level: 'warning', text: `Oplopend risico: €${somHoog.toLocaleString('nl-BE')} geboekt in categorieën met hoge controlekans.` });
+    if (maxLevel === 'ok') maxLevel = 'warning';
+  }
+
+  if (somMidden >= 4000) {
+    alerts.push({ level: 'warning', text: `Forse som (€${somMidden.toLocaleString('nl-BE')}) in categorieën met middelmatige complexiteit — documenteer zakelijk gebruik.` });
+    if (maxLevel === 'ok') maxLevel = 'warning';
+  }
+
+  if (countHoog >= 4 && somHoog < 400) {
+    alerts.push({ level: 'warning', text: `${countHoog} posten in risicovolle categorieën — bundel bewijsstukken per post.` });
+    if (maxLevel === 'ok') maxLevel = 'warning';
+  }
+
+  return { maxLevel, alerts, somHoog, somMidden, countHoog };
+}
+
+function renderFinancieel(searchQ) {
+  const q = (searchQ || '').toLowerCase().trim();
+  const jaar = finJaar;
+  const uit = finUitgavenVoorJaar(jaar).filter((u) =>
+    !q || `${u.omschrijving} ${finMeta(u.categorie).label}`.toLowerCase().includes(q)
+  );
+  const ink = finInkomstenVoorJaar(jaar).filter((i) =>
+    !q || `${i.omschrijving} ${i.bron || ''}`.toLowerCase().includes(q)
+  );
+
+  const totInk = ink.reduce((s, i) => s + (parseFloat(i.bedrag) || 0), 0);
+  const totUit = uit.reduce((s, u) => s + (parseFloat(u.bedrag) || 0), 0);
+  let totAftrek = 0;
+  let aftrekOnbekend = false;
+  uit.forEach((u) => {
+    const g = finGeschatAftrekbaarBedrag(u);
+    if (g == null) aftrekOnbekend = true;
+    else totAftrek += g;
+  });
+
+  const sel = document.getElementById('fin-jaar-select');
+  if (sel) {
+    const curY = new Date().getFullYear();
+    const opts = [curY, curY - 1, curY - 2, curY - 3, curY - 4];
+    sel.innerHTML = opts.map((y) =>
+      `<option value="${y}"${y === jaar ? ' selected' : ''}>${y}</option>`
+    ).join('');
+  }
+
+  const risk = finEvaluateRisks(jaar);
+  const banner = document.getElementById('fin-risk-banner');
+  if (banner) {
+    if (!risk.alerts.length) {
+      banner.innerHTML = `<div class="fin-risk fin-risk--ok">Geen automatische risico-alerts voor ${jaar}. Dit is slechts een indicatie — geen fiscaal advies.</div>`;
+    } else {
+      banner.innerHTML = risk.alerts.map((a) =>
+        `<div class="fin-risk fin-risk--${a.level}">${a.level === 'danger' ? '⚠️ ' : ''}${a.text}</div>`
+      ).join('');
+    }
+  }
+
+  const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setEl('fin-stat-ink', '€ ' + totInk.toLocaleString('nl-BE', { minimumFractionDigits: 2 }));
+  setEl('fin-stat-uit', '€ ' + totUit.toLocaleString('nl-BE', { minimumFractionDigits: 2 }));
+  setEl('fin-stat-aftrek', aftrekOnbekend
+    ? '€ ' + totAftrek.toLocaleString('nl-BE', { minimumFractionDigits: 2 }) + ' + variabel'
+    : '€ ' + totAftrek.toLocaleString('nl-BE', { minimumFractionDigits: 2 }));
+  setEl('fin-stat-net', '€ ' + (totInk - totUit).toLocaleString('nl-BE', { minimumFractionDigits: 2 }));
+
+  const tbody = document.getElementById('fin-uit-tbody');
+  if (tbody) {
+    tbody.innerHTML = uit.length ? uit.map((u) => {
+      const m = finMeta(u.categorie);
+      const g = finGeschatAftrekbaarBedrag(u);
+      const risLabel = m.risico === 'hoog' ? 'badge-red' : m.risico === 'midden' ? 'badge-amber' : 'badge-green';
+      const aftrekStr = g == null ? '—' : '€ ' + g.toLocaleString('nl-BE', { minimumFractionDigits: 2 });
+      return `<tr>
+        <td class="td-mono">${fmt(u.datum)}</td>
+        <td>${u.omschrijving || '—'}</td>
+        <td><span class="badge badge-gray">${m.label}</span></td>
+        <td class="td-mono">€ ${(parseFloat(u.bedrag) || 0).toLocaleString('nl-BE', { minimumFractionDigits: 2 })}</td>
+        <td class="td-mono">${aftrekStr}</td>
+        <td><span class="badge ${risLabel}">${m.risico}</span></td>
+        <td><button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="openFinUitgaveModal('${u.id}')">Bewerk</button>
+            <button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 8px;color:var(--red)" onclick="delFinUitgave('${u.id}')">✕</button></td>
+      </tr>`;
+    }).join('') : `<tr><td colspan="7"><div class="empty"><div class="empty-icon">€</div><div class="empty-text">Geen uitgaven in ${jaar}</div></div></td></tr>`;
+  }
+
+  const itbody = document.getElementById('fin-ink-tbody');
+  if (itbody) {
+    itbody.innerHTML = ink.length ? ink.map((i) => `
+      <tr>
+        <td class="td-mono">${fmt(i.datum)}</td>
+        <td>${i.omschrijving || '—'}</td>
+        <td>${i.bron || '—'}</td>
+        <td class="td-mono">€ ${(parseFloat(i.bedrag) || 0).toLocaleString('nl-BE', { minimumFractionDigits: 2 })}</td>
+        <td><button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="openFinInkomenModal('${i.id}')">Bewerk</button>
+            <button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 8px;color:var(--red)" onclick="delFinInkomen('${i.id}')">✕</button></td>
+      </tr>`).join('') : `<tr><td colspan="5"><div class="empty"><div class="empty-icon">€</div><div class="empty-text">Geen inkomsten in ${jaar}</div></div></td></tr>`;
+  }
+
+  const catBody = document.getElementById('fin-cat-tbody');
+  if (catBody) {
+    catBody.innerHTML = Object.keys(FIN_CATEGORY_META).map((key) => {
+      const m = FIN_CATEGORY_META[key];
+      const p = m.aftrekPct == null ? 'Variabel' : `${m.aftrekPct}% (indicatief)`;
+      const r = m.risico === 'hoog' ? 'badge-red' : m.risico === 'midden' ? 'badge-amber' : 'badge-green';
+      return `<tr>
+        <td>${m.label}</td>
+        <td>${m.groep}</td>
+        <td class="td-mono">${p}</td>
+        <td><span class="badge ${r}">${m.risico}</span></td>
+        <td style="font-size:12px;color:var(--text2);max-width:280px">${m.hint}</td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+function setFinJaar(y) {
+  finJaar = parseInt(y, 10) || new Date().getFullYear();
+  renderFinancieel();
+}
+
+function showFinTab(which, btn) {
+  document.querySelectorAll('.fin-tab-panel').forEach((p) => p.classList.remove('active'));
+  const panel = document.getElementById('fin-panel-' + which);
+  if (panel) panel.classList.add('active');
+  const wrap = document.getElementById('fin-subtabs');
+  if (wrap) wrap.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+function openFinKeuzeModal() {
+  const el = document.getElementById('modal-fin-keuze');
+  if (el) el.classList.add('open');
+}
+
+function finKiesUitgave() {
+  closeModal('modal-fin-keuze');
+  openFinUitgaveModal(null);
+}
+
+function finKiesInkomen() {
+  closeModal('modal-fin-keuze');
+  openFinInkomenModal(null);
+}
+
+function openFinUitgaveModal(id) {
+  finEditUitgaveId = id || null;
+  clearForm('modal-fin-uitgave');
+  const elOv = document.getElementById('fu-aftrek-override');
+  if (elOv) elOv.value = '';
+  if (id) {
+    const u = (db.uitgaven || []).find((x) => x.id === id);
+    if (u) {
+      set('fu-omschrijving', u.omschrijving || '');
+      set('fu-bedrag', u.bedrag != null ? String(u.bedrag) : '');
+      set('fu-datum', u.datum || today());
+      set('fu-categorie', u.categorie || 'overig');
+      if (u.aftrekOverride != null && u.aftrekOverride !== '') {
+        if (elOv) elOv.value = String(u.aftrekOverride);
+      }
+      set('fu-note', u.note || '');
+      const bew = document.getElementById('fu-bewijs');
+      if (bew) bew.checked = !!u.bewijs;
+    }
+  } else {
+    set('fu-datum', today());
+    set('fu-categorie', 'informatica');
+    const bew = document.getElementById('fu-bewijs');
+    if (bew) bew.checked = false;
+  }
+  updateFinUitgaveCategoryHint();
+  document.getElementById('modal-fin-uitgave').classList.add('open');
+}
+
+function updateFinUitgaveCategoryHint() {
+  const m = finMeta(v('fu-categorie'));
+  const hint = document.getElementById('fu-cat-hint');
+  if (hint) {
+    hint.innerHTML = `<strong>${m.label}</strong><br><span style="color:var(--text2)">${m.hint}</span><br>
+      <span style="font-size:11px;color:var(--text3)">Indicatief aftrekbaar: ${m.aftrekPct == null ? 'variabel — vul eventueel eigen % hieronder' : m.aftrekPct + '% van het bedrag (tenzij je een eigen % invult)'}</span>`;
+  }
+}
+
+function saveFinUitgave() {
+  const omschrijving = v('fu-omschrijving').trim();
+  const bedrag = parseFloat(v('fu-bedrag'));
+  const datum = v('fu-datum');
+  if (!omschrijving || !datum || Number.isNaN(bedrag) || bedrag < 0) {
+    toast('❌ Vul omschrijving, geldig bedrag en datum in');
+    return;
+  }
+  const categorie = v('fu-categorie') || 'overig';
+  const meta = finMeta(categorie);
+  const ovRaw = v('fu-aftrek-override').trim();
+  const aftrekOverride = ovRaw === '' ? null : Math.max(0, Math.min(100, parseFloat(ovRaw)));
+
+  if (meta.risico === 'hoog' && bedrag >= 200) {
+    window.alert(
+      'Risico-alert (indicatief)\n\n' +
+      `Deze categorie (“${meta.label}”) wordt vaak streng gecontroleerd in België.\n` +
+      `Bedrag: €${bedrag.toLocaleString('nl-BE')}.\n\n` +
+      'Zorg voor bewijsstukken en laat twijfelgevallen nakijken door je accountant of op beroepskosten.be.\n\n' +
+      'Dit programma geeft geen fiscaal advies.'
+    );
+  } else if (meta.risico === 'midden' && bedrag >= 1500) {
+    window.alert(
+      'Let op (indicatief)\n\n' +
+      'Dit is een forse uitgave in een categorie met middelmatige complexiteit (bewijs / verdeelsleutel).\n' +
+      'Documenteer zakelijk gebruik en bewaar facturen.'
+    );
+  }
+
+  const obj = {
+    id: finEditUitgaveId || uid(),
+    omschrijving,
+    bedrag,
+    datum,
+    categorie,
+    aftrekOverride: aftrekOverride != null && !Number.isNaN(aftrekOverride) ? aftrekOverride : null,
+    note: v('fu-note'),
+    bewijs: !!(document.getElementById('fu-bewijs') || {}).checked
+  };
+  upsert('uitgaven', obj);
+  finEditUitgaveId = null;
+  closeModal('modal-fin-uitgave');
+  renderFinancieel();
+  toast(meta.risico === 'hoog' ? '✓ Opgeslagen — controleer fiscale haalbaarheid' : '✓ Uitgave opgeslagen');
+}
+
+function openFinInkomenModal(id) {
+  finEditInkomenId = id || null;
+  clearForm('modal-fin-inkomen');
+  if (id) {
+    const x = (db.inkomsten || []).find((i) => i.id === id);
+    if (x) {
+      set('fi-omschrijving', x.omschrijving || '');
+      set('fi-bedrag', x.bedrag != null ? String(x.bedrag) : '');
+      set('fi-datum', x.datum || today());
+      set('fi-bron', x.bron || '');
+      set('fi-note', x.note || '');
+    }
+  } else {
+    set('fi-datum', today());
+  }
+  document.getElementById('modal-fin-inkomen').classList.add('open');
+}
+
+function saveFinInkomen() {
+  const omschrijving = v('fi-omschrijving').trim();
+  const bedrag = parseFloat(v('fi-bedrag'));
+  const datum = v('fi-datum');
+  if (!omschrijving || !datum || Number.isNaN(bedrag) || bedrag < 0) {
+    toast('❌ Vul omschrijving, geldig bedrag en datum in');
+    return;
+  }
+  const obj = {
+    id: finEditInkomenId || uid(),
+    omschrijving,
+    bedrag,
+    datum,
+    bron: v('fi-bron'),
+    note: v('fi-note')
+  };
+  upsert('inkomsten', obj);
+  finEditInkomenId = null;
+  closeModal('modal-fin-inkomen');
+  renderFinancieel();
+  toast('✓ Inkomen opgeslagen');
+}
+
+async function delFinUitgave(id) {
+  if (!(await openArchConfirmModal('Uitgave verwijderen?'))) return;
+  db.uitgaven = (db.uitgaven || []).filter((u) => u.id !== id);
+  save();
+  renderFinancieel();
+  toast('Verwijderd');
+}
+
+async function delFinInkomen(id) {
+  if (!(await openArchConfirmModal('Inkomen verwijderen?'))) return;
+  db.inkomsten = (db.inkomsten || []).filter((i) => i.id !== id);
+  save();
+  renderFinancieel();
+  toast('Verwijderd');
 }
 
 // ─── EXPORT / IMPORT ─────────────────────────────────────────────────────────
@@ -1449,7 +2120,7 @@ function importData(e) {
   r.onload = ev => {
     try {
       const data = JSON.parse(ev.target.result);
-      if (data.klanten || data.projecten) {
+      if (data.klanten || data.projecten || data.uitgaven || data.inkomsten) {
         db = data;
         normalizeDbShape();
         save(); render();
@@ -1556,16 +2227,47 @@ function renderTijdlijn() {
 
 // ─── FACTUUR LIJNEN ──────────────────────────────────────────────────────────
 let facLines = [];
+let facAttachments = [];
 
 function openFacModal() {
-  facLines = [{ omschrijving: '', aantal: 1, prijs: 0, subtotaal: 0 }];
-  renderFacLines();
-  updateFacTotals();
   populateKlantSelects();
-  populateProjectSelect();
-  // Set default datum & vervaldag
-  const d = document.getElementById('f-datum');
-  if (d && !d.value) d.value = today();
+  populateFactuurProjectSelect();
+  const editing = editId && db.facturen.some((f) => f.id === editId);
+  if (editing) {
+    const f = db.facturen.find((x) => x.id === editId);
+    set('f-type', f.type || 'factuur');
+    set('f-num', f.num || '');
+    set('f-klant', f.klantId || '');
+    populateFactuurProjectSelect();
+    set('f-project', f.projectId || '');
+    set('f-desc', f.desc || '');
+    set('f-btw', String(f.btwPct != null ? f.btwPct : 21));
+    set('f-datum', f.datum || today());
+    set('f-termijn', f.termijn != null && f.termijn !== '' ? String(f.termijn) : '30');
+    set('f-verval', f.verval || '');
+    set('f-status', f.status || 'concept');
+    set('f-ref', f.ref || '');
+    set('f-betaalwijze', f.betaalwijze || 'overschrijving');
+    set('f-note', f.note || '');
+    const vp = document.getElementById('f-voorschot-pct');
+    if (vp) vp.value = f.voorschotPct != null ? f.voorschotPct : 30;
+    set('f-voorschot-type', f.voorschotType || 'algemeen');
+    facLines = (f.lines && f.lines.length) ? f.lines.map((l) => ({ ...l })) : [{ omschrijving: '', aantal: 1, prijs: 0, subtotaal: 0 }];
+    facAttachments = Array.isArray(f.attachments) ? f.attachments.map((a) => ({ ...a })) : [];
+    const title = document.getElementById('modal-factuur-title');
+    if (title) title.textContent = f.num ? `Bewerken · ${f.num}` : 'Factuur bewerken';
+  } else {
+    facLines = [{ omschrijving: '', aantal: 1, prijs: 0, subtotaal: 0 }];
+    facAttachments = [];
+    const d = document.getElementById('f-datum');
+    if (d && !d.value) d.value = today();
+    const title = document.getElementById('modal-factuur-title');
+    if (title) title.textContent = 'Nieuwe factuur';
+  }
+  renderFacLines();
+  renderFacAttachments();
+  updateFacTotals();
+  updateFactuurType();
   calcVervaldag();
 }
 
@@ -1628,10 +2330,8 @@ function startFactuurOpstellen(type = 'factuur') {
   openModal('modal-factuur');
 
   const klantFilter = (document.getElementById('fac-klant-filter') || {}).value || '';
-  if (klantFilter) {
-    set('f-klant', klantFilter);
-    populateProjectSelect();
-  }
+  if (klantFilter) set('f-klant', klantFilter);
+  populateFactuurProjectSelect();
   const project = suggestProjectForKlant(klantFilter);
   if (project) set('f-project', project.id);
 
@@ -1646,6 +2346,8 @@ function startFactuurOpstellen(type = 'factuur') {
 
   facLines = [suggestFactuurLijn(project, type)];
   renderFacLines();
+  facAttachments = suggestDefaultFacAttachments();
+  renderFacAttachments();
   updateFactuurType();
   calcVervaldag();
   updateFacTotals();
@@ -1699,6 +2401,98 @@ function getFacLines() {
   return facLines.map(l => ({...l, subtotaal: (l.aantal||0)*(l.prijs||0)}));
 }
 
+function suggestDefaultFacAttachments() {
+  const klantId = v('f-klant');
+  const projectId = v('f-project');
+  const num = v('f-num');
+  const docType = v('f-type') || 'factuur';
+  const k = db.klanten.find((x) => x.id === klantId);
+  const p = db.projecten.find((x) => x.id === projectId);
+  const typeLabels = { factuur:'Factuur', voorschot:'Voorschot', creditnota:'Creditnota', offerte:'Offerte', 'pro-forma':'Pro-forma' };
+  const tl = typeLabels[docType] || 'Document';
+  const subj = p ? p.naam : (k ? (k.bedrijf || `${k.voornaam || ''} ${k.achternaam || ''}`.trim()) : 'Document');
+  const items = [];
+  if (p && (p.githubUrl || p.githubRepo)) {
+    const gh = p.githubUrl || (p.githubRepo ? `https://github.com/${normalizeGithubRepo(p.githubRepo)}` : '');
+    if (gh) items.push({ naam: `Repository — ${p.naam}`, url: gh, type: 'github', note: 'Projectrepository', datum: today() });
+  }
+  const web = (p && p.website) || (k && k.website) || '';
+  items.push({
+    naam: `${tl} ${num || 'concept'} — ${subj}`.trim(),
+    url: web,
+    type: web ? 'link' : 'pdf',
+    note: 'PDF- of Drive-link na upload',
+    datum: today()
+  });
+  return items;
+}
+
+function renderFacAttachments() {
+  const el = document.getElementById('fac-attachments-list');
+  if (!el) return;
+  const typeOpts = [
+    { v: 'pdf', label: 'PDF' }, { v: 'figma', label: 'Figma' }, { v: 'github', label: 'GitHub' },
+    { v: 'drive', label: 'Drive' }, { v: 'notion', label: 'Notion' }, { v: 'link', label: 'Link' }, { v: 'other', label: 'Overig' }
+  ];
+  el.innerHTML = facAttachments.length ? facAttachments.map((b, i) => `
+    <div style="margin-bottom:10px">
+      <div class="fac-line" style="display:grid;grid-template-columns:1fr 1fr 100px 32px;gap:6px;align-items:center">
+        <input value="${escapeArchAttr(b.naam)}" placeholder="Naam" oninput="facAttachments[${i}].naam=this.value">
+        <input value="${escapeArchAttr(b.url || '')}" placeholder="URL" oninput="facAttachments[${i}].url=this.value">
+        <select onchange="facAttachments[${i}].type=this.value" style="padding:6px 8px;font-size:12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text)">
+          ${typeOpts.map((o) => `<option value="${o.v}"${(b.type || 'link') === o.v ? ' selected' : ''}>${o.label}</option>`).join('')}
+        </select>
+        <button type="button" onclick="removeFacAttachment(${i})" title="Verwijder">✕</button>
+      </div>
+      <input value="${escapeArchAttr(b.note || '')}" placeholder="Notitie (optioneel)" oninput="facAttachments[${i}].note=this.value"
+        style="width:100%;margin-top:6px;padding:6px 10px;font-size:12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text)">
+    </div>`).join('') :
+    '<div style="color:var(--text3);font-size:12px">Geen bijlagen — gebruik + of Slim invullen</div>';
+}
+
+async function addFacAttachmentPrompt() {
+  const d = suggestDefaultFacAttachments();
+  const first = d[0] || { naam: '', url: '', type: 'link', note: '', datum: today() };
+  const data = await openArchInputModal('Bijlage / link', [
+    { id: 'naam', label: 'Naam', value: first.naam },
+    { id: 'url', label: 'URL', value: first.url || '', placeholder: 'https://…' },
+    { id: 'type', label: 'Type', type: 'select', value: first.type || 'link', options: [
+      { v: 'pdf', label: 'PDF' }, { v: 'figma', label: 'Figma' }, { v: 'github', label: 'GitHub' },
+      { v: 'drive', label: 'Drive' }, { v: 'notion', label: 'Notion' }, { v: 'link', label: 'Link' }, { v: 'other', label: 'Overig' }
+    ] },
+    { id: 'note', label: 'Notitie (optioneel)', value: first.note || '' }
+  ]);
+  if (!data || !data.naam || !data.naam.trim()) return;
+  facAttachments.push({
+    naam: data.naam.trim(),
+    url: (data.url || '').trim(),
+    type: (data.type || 'link').trim() || 'link',
+    note: (data.note || '').trim(),
+    datum: today()
+  });
+  renderFacAttachments();
+}
+
+function addDefaultFacAttachments() {
+  suggestDefaultFacAttachments().forEach((x) => {
+    const dup = facAttachments.some((e) => e.naam === x.naam && (e.url || '') === (x.url || ''));
+    if (!dup) facAttachments.push({ ...x });
+  });
+  renderFacAttachments();
+}
+
+function removeFacAttachment(i) {
+  facAttachments.splice(i, 1);
+  renderFacAttachments();
+}
+
+function editFactuur(id) {
+  if (!db.facturen.find((f) => f.id === id)) return;
+  editId = id;
+  closeDetail();
+  openModal('modal-factuur');
+}
+
 function updateFactuurType() {
   const t = v('f-type');
   const vRow = document.getElementById('f-voorschot-row');
@@ -1706,8 +2500,14 @@ function updateFactuurType() {
   if (vRow) vRow.style.display = t === 'voorschot' ? 'flex' : 'none';
   if (vtRow) vtRow.style.display = t === 'voorschot' ? 'flex' : 'none';
   const title = document.getElementById('modal-factuur-title');
+  if (!title) return;
+  if (editId && db.facturen.some((f) => f.id === editId)) {
+    const f = db.facturen.find((x) => x.id === editId);
+    title.textContent = f && f.num ? `Bewerken · ${f.num}` : 'Factuur bewerken';
+    return;
+  }
   const labels = { factuur:'Nieuwe factuur', voorschot:'Nieuwe voorschotfactuur', creditnota:'Nieuwe creditnota', offerte:'Nieuw offerte', 'pro-forma':'Pro-forma factuur' };
-  if (title) title.textContent = labels[t] || 'Nieuw document';
+  title.textContent = labels[t] || 'Nieuw document';
 }
 
 function calcVervaldag() {
@@ -1813,16 +2613,21 @@ function renderRoadmap() {
   }).join('');
 }
 
-function addMilestone() {
+async function addMilestone() {
   const pid = document.getElementById('rm-project-select').value;
   if (!pid) return;
   if (!db.roadmaps) db.roadmaps = {};
   if (!db.roadmaps[pid]) db.roadmaps[pid] = [];
 
-  const naam = prompt('Naam van de mijlpaal:');
-  if (!naam) return;
-  const datum = prompt('Deadline (YYYY-MM-DD, optioneel):') || '';
-  const desc = prompt('Beschrijving (optioneel):') || '';
+  const data = await openArchInputModal('Nieuwe mijlpaal', [
+    { id: 'naam', label: 'Naam', placeholder: 'Mijlpaal' },
+    { id: 'datum', label: 'Deadline (optioneel)', type: 'date' },
+    { id: 'desc', label: 'Beschrijving (optioneel)', placeholder: '' }
+  ]);
+  if (!data || !data.naam || !data.naam.trim()) return;
+  const naam = data.naam.trim();
+  const datum = (data.datum || '').trim();
+  const desc = (data.desc || '').trim();
 
   db.roadmaps[pid].push({ naam, datum, desc, status: 'open', items: [], _open: true });
   save();
@@ -1830,9 +2635,9 @@ function addMilestone() {
   toast('✓ Mijlpaal toegevoegd');
 }
 
-function delMilestone(mi) {
+async function delMilestone(mi) {
   const pid = document.getElementById('rm-project-select').value;
-  if (!confirm('Mijlpaal verwijderen?')) return;
+  if (!(await openArchConfirmModal('Mijlpaal verwijderen?'))) return;
   db.roadmaps[pid].splice(mi, 1);
   save(); renderRoadmap();
 }
@@ -2530,7 +3335,12 @@ function installClickSafetyGuards() {
   const names = [
     'showPage','openAddModal','openModal','closeModal','saveKlant','saveProject','saveTaak','saveFactuur','saveApi',
     'addTodoList','addMeeting','filterProjecten','filterFacturen','startFactuurOpstellen','openAddAfspraakModal',
-    'openProjectArch','openProjectDetail','editProject','editKlant','switchArchTab','saveProjectNotes'
+    'editFactuur','populateFactuurProjectSelect','addFacAttachmentPrompt','addDefaultFacAttachments','removeFacAttachment',
+    'submitArchInputModal','closeArchInputModal','closeArchConfirmModal',
+    'openFinKeuzeModal','finKiesUitgave','finKiesInkomen','saveFinUitgave','saveFinInkomen',
+    'delFinUitgave','delFinInkomen','openFinUitgaveModal','openFinInkomenModal','setFinJaar','updateFinUitgaveCategoryHint','showFinTab',
+    'openProjectArch','openProjectDetail','editProject','editKlant','switchArchTab','saveProjectNotes',
+    'saveFollowupMailSettings'
   ];
   names.forEach((name) => {
     const fn = window[name];

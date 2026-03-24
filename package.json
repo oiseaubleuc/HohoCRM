@@ -1,0 +1,8 @@
+{
+  "name": "hohoh-crm-netlify",
+  "private": true,
+  "description": "Root deps for Netlify Functions (Gmail opvolgmail)",
+  "dependencies": {
+    "nodemailer": "^6.9.16"
+  }
+}

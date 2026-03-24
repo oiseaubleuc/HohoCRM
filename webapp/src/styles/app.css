@@ -352,6 +352,11 @@
 
   .modal-overlay.open { display: flex; }
 
+  /* Boven andere modals + project-arch overlay (WKWebView: geen prompt/confirm) */
+  .modal-overlay.arch-front {
+    z-index: 450;
+  }
+
   .modal {
     background: var(--surface);
     border: 1px solid var(--border2);
@@ -1550,6 +1555,54 @@
   .badge-status-geannuleerd { background:var(--surface2); color:var(--text3); }
   .fac-detail-line { display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--border); font-size:13px; }
   .fac-detail-line:last-child { border-bottom:none; }
+
+  /* ── FINANCIEEL ── */
+  .fin-tab-panel { display: none; }
+  .fin-tab-panel.active { display: block; }
+  .fin-cat-hint {
+    font-size: 12px;
+    line-height: 1.5;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+  .fin-check-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text2);
+    cursor: pointer;
+    margin-top: 4px;
+  }
+  .fin-check-label input { width: auto; accent-color: var(--accent); }
+  .fin-risk {
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+  }
+  .fin-risk--ok {
+    background: var(--surface2);
+    color: var(--text2);
+    border-color: var(--border);
+  }
+  .fin-risk--warning {
+    background: var(--amber-soft);
+    color: var(--amber);
+    border-color: rgba(240, 165, 0, 0.35);
+  }
+  .fin-risk--danger {
+    background: var(--red-soft);
+    color: var(--red);
+    border-color: rgba(240, 80, 80, 0.4);
+    font-weight: 600;
+  }
 
   /* ── AGENDA ── */
   .agenda-layout { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; }

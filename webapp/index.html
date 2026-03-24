@@ -60,6 +60,10 @@
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
       Facturen
     </button>
+    <button class="nav-item" onclick="showPage('financieel')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Financieel overzicht
+    </button>
 
     <div class="nav-label">Planning</div>
     <button class="nav-item" onclick="showPage('tijdlijn')">
@@ -358,6 +362,105 @@
     <div id="facturen-cards" class="fac-mobile-list"></div>
   </div>
 
+  <!-- FINANCIEEL (inkomsten, uitgaven, fiscale indicatoren) -->
+  <div class="page" id="page-financieel">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Financieel overzicht</div>
+        <div class="section-sub">Inkomsten, uitgaven en <strong>indicatieve</strong> aftrekbaarheid — geen fiscaal advies. Zie ook <a href="https://www.beroepskosten.be" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">beroepskosten.be</a>.</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <label style="font-size:13px;color:var(--text2);display:flex;align-items:center;gap:8px">Jaar
+          <select id="fin-jaar-select" class="gantt-select" onchange="setFinJaar(this.value)"></select>
+        </label>
+        <button type="button" class="btn btn-ghost" style="font-size:12px" onclick="window.open('https://www.beroepskosten.be','_blank')">Beroepskosten.be →</button>
+      </div>
+    </div>
+
+    <div id="fin-risk-banner" style="margin-bottom:16px"></div>
+
+    <div class="stats-grid" style="margin-bottom:20px">
+      <div class="stat-card">
+        <div class="stat-label">Inkomsten (jaar)</div>
+        <div class="stat-value" id="fin-stat-ink" style="color:var(--green)">€ 0,00</div>
+        <div class="stat-sub">geboekte inkomsten</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Uitgaven (jaar)</div>
+        <div class="stat-value" id="fin-stat-uit">€ 0,00</div>
+        <div class="stat-sub">alle uitgaven</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Geschat aftrekbaar</div>
+        <div class="stat-value" id="fin-stat-aftrek" style="color:var(--accent)">€ 0,00</div>
+        <div class="stat-sub">op basis van categorie</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Saldo (ink − uit)</div>
+        <div class="stat-value" id="fin-stat-net">€ 0,00</div>
+        <div class="stat-sub">niet = winst</div>
+      </div>
+    </div>
+
+    <div class="tabs" id="fin-subtabs" style="margin-bottom:14px">
+      <button type="button" class="tab active" onclick="showFinTab('uit',this)">Uitgaven</button>
+      <button type="button" class="tab" onclick="showFinTab('ink',this)">Inkomsten</button>
+      <button type="button" class="tab" onclick="showFinTab('cat',this)">Categorieën &amp; risico</button>
+    </div>
+
+    <div id="fin-panel-uit" class="fin-tab-panel active">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Datum</th>
+              <th>Omschrijving</th>
+              <th>Categorie</th>
+              <th>Bedrag</th>
+              <th>Geschat aftrekbaar</th>
+              <th>Risico</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="fin-uit-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="fin-panel-ink" class="fin-tab-panel">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Datum</th>
+              <th>Omschrijving</th>
+              <th>Bron</th>
+              <th>Bedrag</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="fin-ink-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="fin-panel-cat" class="fin-tab-panel">
+      <p style="font-size:13px;color:var(--text2);margin:0 0 12px;line-height:1.5">Percentages en risico’s zijn <strong>vereenvoudigde indicatoren</strong> (o.a. geïnspireerd op rubrieken van Accountable / beroepskosten.be). Voertuig, thuiskantoor en dergelijke vereisen een echte berekening.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Categorie</th>
+              <th>Groep</th>
+              <th>Indicatief aftrekbaar</th>
+              <th>Controle-risico</th>
+              <th>Toelichting</th>
+            </tr>
+          </thead>
+          <tbody id="fin-cat-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <!-- TIJDLIJN -->
   <div class="page" id="page-tijdlijn">
     <div class="section-head">
@@ -417,6 +520,28 @@
       <div>
         <div class="section-title">API & Tools</div>
         <div class="section-sub">Alle integraties per klant</div>
+      </div>
+    </div>
+    <div class="table-wrap" style="margin-bottom:20px">
+      <div class="table-header">
+        <div class="table-title">Opvolgmail via Gmail (automatisch)</div>
+      </div>
+      <div style="padding:16px;font-size:13px;color:var(--text2);line-height:1.5">
+        <p style="margin:0 0 12px">Vul de URL van je Netlify Function en het gedeelde geheim in. Gmail-wachtwoord hoort <strong>niet</strong> hier — alleen in Netlify (zie <code style="font-size:11px">docs/GMAIL-OPVOLGMAIL.md</code> in de repo).</p>
+        <div class="form-row">
+          <div class="form-group full">
+            <label>Function URL (bijv. …/.netlify/functions/send-followup)</label>
+            <input id="followup-url" type="url" placeholder="https://jouw-site.netlify.app/.netlify/functions/send-followup" autocomplete="off">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group full">
+            <label>API-geheim (zelfde als FOLLOWUP_API_SECRET op Netlify)</label>
+            <input id="followup-secret" type="password" placeholder="Lang willekeurig geheim" autocomplete="off">
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="saveFollowupMailSettings()">Opslaan instellingen</button>
+        <span id="followup-settings-status" style="margin-left:12px;font-size:12px;color:var(--text3)"></span>
       </div>
     </div>
     <div class="table-wrap">
@@ -790,7 +915,7 @@
 
       <!-- Klant + project -->
       <div class="form-row">
-        <div class="form-group"><label>Klant</label><select id="f-klant"></select></div>
+        <div class="form-group"><label>Klant</label><select id="f-klant" onchange="populateFactuurProjectSelect()"></select></div>
         <div class="form-group"><label>Project (optioneel)</label><select id="f-project"><option value="">— Geen —</option></select></div>
       </div>
 
@@ -898,10 +1023,46 @@
         </div>
       </div>
       <div class="form-group full"><label>Interne notitie</label><textarea id="f-note" placeholder="Interne opmerkingen, herinneringen..."></textarea></div>
+      <div class="form-group full">
+        <label>Bijlagen / links</label>
+        <div id="fac-attachments-list" style="display:flex;flex-direction:column;gap:8px;margin-top:6px"></div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+          <button type="button" class="btn btn-ghost" style="font-size:12px;padding:5px 12px" onclick="addFacAttachmentPrompt()">+ Bijlage / link</button>
+          <button type="button" class="btn btn-ghost" style="font-size:12px;padding:5px 12px" onclick="addDefaultFacAttachments()">Slim invullen</button>
+        </div>
+      </div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="closeModal('modal-factuur')">Annuleer</button>
       <button class="btn btn-primary" onclick="saveFactuur()">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: arch invoer (i.p.v. prompt — werkt in native app) -->
+<div class="modal-overlay arch-front" id="modal-arch-input">
+  <div class="modal" style="width:420px">
+    <div class="modal-head">
+      <div class="modal-title" id="arch-input-title">Invoer</div>
+      <button type="button" class="modal-close" onclick="closeArchInputModal(false)">✕</button>
+    </div>
+    <div class="modal-body" id="arch-input-fields"></div>
+    <div class="modal-foot">
+      <button type="button" class="btn btn-ghost" onclick="closeArchInputModal(false)">Annuleer</button>
+      <button type="button" class="btn btn-primary" onclick="submitArchInputModal()">OK</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay arch-front" id="modal-arch-confirm">
+  <div class="modal" style="width:380px">
+    <div class="modal-head">
+      <div class="modal-title">Bevestigen</div>
+      <button type="button" class="modal-close" onclick="closeArchConfirmModal(false)">✕</button>
+    </div>
+    <div class="modal-body"><p id="arch-confirm-message" style="margin:0;line-height:1.5;color:var(--text2)"></p></div>
+    <div class="modal-foot">
+      <button type="button" class="btn btn-ghost" onclick="closeArchConfirmModal(false)">Annuleer</button>
+      <button type="button" class="btn btn-primary" onclick="closeArchConfirmModal(true)">OK</button>
     </div>
   </div>
 </div>
@@ -943,6 +1104,106 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- MODAL: FIN — keuze -->
+<div class="modal-overlay" id="modal-fin-keuze">
+  <div class="modal" style="width:400px">
+    <div class="modal-head">
+      <div class="modal-title">Wat wil je toevoegen?</div>
+      <button type="button" class="modal-close" onclick="closeModal('modal-fin-keuze')">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:10px">
+      <button type="button" class="btn btn-primary" style="width:100%;justify-content:center" onclick="finKiesUitgave()">Uitgave (met categorie &amp; risico)</button>
+      <button type="button" class="btn btn-ghost" style="width:100%;justify-content:center" onclick="finKiesInkomen()">Inkomen</button>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn btn-ghost" onclick="closeModal('modal-fin-keuze')">Annuleer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: FIN — uitgave -->
+<div class="modal-overlay" id="modal-fin-uitgave">
+  <div class="modal" style="width:520px;max-height:92vh">
+    <div class="modal-head">
+      <div class="modal-title">Uitgave</div>
+      <button type="button" class="modal-close" onclick="closeModal('modal-fin-uitgave')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group full"><label>Omschrijving</label><input id="fu-omschrijving" placeholder="Laptop, restaurant met klant X, brandstof…"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Bedrag (€)</label><input id="fu-bedrag" type="number" min="0" step="0.01" placeholder="0,00"></div>
+        <div class="form-group"><label>Datum</label><input id="fu-datum" type="date"></div>
+      </div>
+      <div class="form-group full">
+        <label>Categorie (fiscale rubriek, indicatief)</label>
+        <select id="fu-categorie" onchange="updateFinUitgaveCategoryHint()">
+          <optgroup label="Aanbevolen / veelvoorkomend">
+            <option value="informatica">Informatica (PC, laptop, software)</option>
+            <option value="telecom">Telefoon &amp; internet</option>
+            <option value="kantoor">Kantoorkosten</option>
+            <option value="werkplek">Werkplek &amp; meubilair</option>
+            <option value="marketing">Marketing &amp; reclame</option>
+            <option value="opleiding">Opleiding (beroepsgericht)</option>
+            <option value="belastingen_verzekeringen">Belastingen &amp; verzekeringen</option>
+          </optgroup>
+          <optgroup label="Reizen &amp; vervoer">
+            <option value="reizen">Reizen (zakelijk)</option>
+            <option value="vervoer">Vervoer (openbaar, taxi, …)</option>
+            <option value="voertuig">Voertuig (auto, leasing)</option>
+            <option value="vergoedingen">Vergoedingen (km, onkosten)</option>
+          </optgroup>
+          <optgroup label="Overig">
+            <option value="eten_drinken">Eten &amp; drinken (restaurant zakelijk)</option>
+            <option value="kledij">Kledij &amp; uitrusting</option>
+            <option value="financien">Financiële kosten</option>
+            <option value="gereedschap">Gereedschap &amp; klein materiaal</option>
+            <option value="terrein_verbouw">Terreinen &amp; verbouwing</option>
+            <option value="thuiskantoor">Thuiskantoor</option>
+          </optgroup>
+          <optgroup label="Extra risico">
+            <option value="fitness_lifestyle">Fitness / sport / lifestyle</option>
+            <option value="overig">Niet geclassificeerd / overig</option>
+          </optgroup>
+        </select>
+      </div>
+      <div id="fu-cat-hint" class="fin-cat-hint"></div>
+      <div class="form-group full">
+        <label>Eigen aftrek-% (optioneel, override)</label>
+        <input id="fu-aftrek-override" type="number" min="0" max="100" step="1" placeholder="Leeg = standaard uit categorie">
+      </div>
+      <div class="form-group full"><label>Notitie</label><textarea id="fu-note" placeholder="Factuurnummer, context voor fiscus…"></textarea></div>
+      <label class="fin-check-label"><input type="checkbox" id="fu-bewijs"> Ik heb een bewijsstuk (factuur, ticket) bewaard</label>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn btn-ghost" onclick="closeModal('modal-fin-uitgave')">Annuleer</button>
+      <button type="button" class="btn btn-primary" onclick="saveFinUitgave()">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: FIN — inkomen -->
+<div class="modal-overlay" id="modal-fin-inkomen">
+  <div class="modal" style="width:480px">
+    <div class="modal-head">
+      <div class="modal-title">Inkomen</div>
+      <button type="button" class="modal-close" onclick="closeModal('modal-fin-inkomen')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group full"><label>Omschrijving</label><input id="fi-omschrijving" placeholder="Factuur klant Y, honorarium, …"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Bedrag (€)</label><input id="fi-bedrag" type="number" min="0" step="0.01"></div>
+        <div class="form-group"><label>Datum</label><input id="fi-datum" type="date"></div>
+      </div>
+      <div class="form-group full"><label>Bron (optioneel)</label><input id="fi-bron" placeholder="Klant, platform, …"></div>
+      <div class="form-group full"><label>Notitie</label><textarea id="fi-note"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn btn-ghost" onclick="closeModal('modal-fin-inkomen')">Annuleer</button>
+      <button type="button" class="btn btn-primary" onclick="saveFinInkomen()">Opslaan</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL: AFSPRAAK -->
 <div class="modal-overlay" id="modal-afspraak">

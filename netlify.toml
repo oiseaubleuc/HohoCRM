@@ -1,11 +1,14 @@
 # https://docs.netlify.com/configure-builds/file-based-configuration/
 [build]
-  # La webapp Vite vit dans webapp/ — pas d’index.html à la racine du repo
-  command = "cd webapp && npm ci && npm run build"
+  # Root npm = nodemailer voor Netlify Function; daarna webapp build
+  command = "npm ci && cd webapp && npm ci && npm run build"
   publish = "webapp/dist"
 
 [build.environment]
   NODE_VERSION = "20"
+
+[functions]
+  directory = "netlify/functions"
 
 [[headers]]
   for = "/assets/*"
