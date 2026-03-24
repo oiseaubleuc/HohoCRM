@@ -684,6 +684,37 @@ section { padding: 120px 60px; max-width: 1200px; margin: 0 auto; }
 .btn-pricing-ghost:hover { background: var(--surface2); color: var(--text); }
 .btn-pricing-primary { background: var(--accent); color: white; }
 .btn-pricing-primary:hover { background: var(--accent2); transform: translateY(-1px); }
+.pay-note {
+  margin-top: 14px;
+  font-size: 11px;
+  color: var(--text3);
+  line-height: 1.5;
+}
+.paid-access {
+  display: none;
+  max-width: 1100px;
+  margin: 22px auto 0;
+  padding: 20px 24px;
+  border-radius: 14px;
+  border: 1px solid rgba(62,207,142,0.35);
+  background: linear-gradient(120deg, rgba(62,207,142,0.1), rgba(124,106,247,0.08));
+}
+.paid-access.show { display: block; }
+.paid-access-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.paid-access-sub {
+  font-size: 13px;
+  color: var(--text2);
+  margin-bottom: 14px;
+}
+.paid-access-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
 
 /* ── TESTIMONIALS ── */
 .testimonials-grid {
@@ -1270,7 +1301,8 @@ footer {
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Alle toekomstige updates</li>
           <li class="off"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Multi-user</li>
         </ul>
-        <a href="/cdn-cgi/l/email-protection#3d54535b527d55525552554e525148495452534e135f58024e485f57585e49006d4f521d51545e58534954581d5c5c534b4f5c5a5853" class="btn-pricing btn-pricing-primary">Pro aanschaffen — €49</a>
+        <a href="#" id="pro-buy-btn" class="btn-pricing btn-pricing-primary">Pro aanschaffen — €49</a>
+        <div class="pay-note">Veilige betaling via Stripe. Na betaling krijg je direct toegang.</div>
       </div>
       <div class="pricing-card">
         <div class="pricing-name">Team</div>
@@ -1285,7 +1317,19 @@ footer {
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Installatiehulp op maat</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Custom branding</li>
         </ul>
-        <a href="/cdn-cgi/l/email-protection#137a7d757c537b7c7b7c7b607c7f66677a7c7d603d71762c606671797670672e4776727e337f7a70767d677a763372727d65617274767d" class="btn-pricing btn-pricing-ghost">Contact opnemen</a>
+        <a href="#" id="team-buy-btn" class="btn-pricing btn-pricing-ghost">Team aanschaffen — €99</a>
+        <div class="pay-note">Team checkout via Stripe (tot 5 gebruikers/licenties).</div>
+      </div>
+    </div>
+
+    <div class="paid-access" id="paid-access">
+      <div class="paid-access-title">✅ Betaling ontvangen — toegang geactiveerd</div>
+      <div class="paid-access-sub">
+        Je kan nu direct starten. Bewaar deze pagina of bookmark de platformlink.
+      </div>
+      <div class="paid-access-actions">
+        <a href="https://hohocrm.netlify.app/" class="btn-pricing btn-pricing-primary">Open platform</a>
+        <a href="#download" class="btn-pricing btn-pricing-ghost">Download links</a>
       </div>
     </div>
 
@@ -1713,6 +1757,44 @@ footer {
 </footer>
 
 <script>
+// ── STRIPE CHECKOUT CONFIG ───────────────────────────────────────────────────
+// Plak hier je Stripe Payment Links.
+const STRIPE_PRO_LINK  = 'https://buy.stripe.com/REPLACE_WITH_PRO_LINK';
+const STRIPE_TEAM_LINK = 'https://buy.stripe.com/REPLACE_WITH_TEAM_LINK';
+// Stel in Stripe "After payment" redirect in naar:
+// https://jouwdomein/hohohsolutions-website.html?paid=1&type=pro
+// https://jouwdomein/hohohsolutions-website.html?paid=1&type=team
+
+function wireStripeButtons() {
+  const proBtn = document.getElementById('pro-buy-btn');
+  const teamBtn = document.getElementById('team-buy-btn');
+  if (proBtn) {
+    proBtn.href = STRIPE_PRO_LINK;
+    proBtn.target = '_blank';
+    proBtn.rel = 'noopener';
+  }
+  if (teamBtn) {
+    teamBtn.href = STRIPE_TEAM_LINK;
+    teamBtn.target = '_blank';
+    teamBtn.rel = 'noopener';
+  }
+}
+
+function handlePaidAccessState() {
+  const params = new URLSearchParams(window.location.search);
+  const paid = params.get('paid');
+  const sessionId = params.get('session_id');
+  const panel = document.getElementById('paid-access');
+  if (!panel) return;
+  if (paid === '1' || !!sessionId) {
+    panel.classList.add('show');
+    setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'center' }), 220);
+  }
+}
+
+wireStripeButtons();
+handlePaidAccessState();
+
 // ── CURSOR ──────────────────────────────────────────────────────────────────
 const cursor = document.getElementById('cursor');
 const ring   = document.getElementById('cursor-ring');
