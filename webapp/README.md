@@ -17,7 +17,8 @@ Vanilla JavaScript CRM met Vite voor ontwikkeling en productie-build.
 webapp/
 ├── index.html          Shell + markup
 ├── public/
-│   └── crm-app.js      Applicatielogica (globale handlers voor inline onclick)
+│   ├── crm-app.js      Applicatielogica (globale handlers voor inline onclick)
+│   └── invoice-pdf.js  PDF-export factuur (html2pdf + QR); branding via localStorage `hohoh_invoice_branding`
 ├── src/
 │   ├── main.js         Entry: importeert alleen CSS
 │   └── styles/

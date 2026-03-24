@@ -353,7 +353,7 @@
             <th>Datum</th>
             <th>Vervaldag</th>
             <th>Status</th>
-            <th></th>
+            <th style="text-align:right;white-space:nowrap">Acties</th>
           </tr>
         </thead>
         <tbody id="facturen-tbody"></tbody>
@@ -1248,6 +1248,9 @@
 </div>
 
 <script type="module" src="/src/main.js"></script>
-<script defer src="/crm-app.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
+<script defer src="/invoice-pdf.js"></script>
+<script defer src="/crm-app.js?v=__CRM_APP_HASH__"></script>
 </body>
 </html>

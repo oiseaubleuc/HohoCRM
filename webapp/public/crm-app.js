@@ -28,12 +28,17 @@ function save() {
   localStorage.setItem('mijncrm', JSON.stringify(db));
 }
 
+function syncInvoiceDbRef() {
+  if (typeof window !== 'undefined') window.__HOHOH_DB__ = db;
+}
+
 function load() {
   const raw = localStorage.getItem('mijncrm');
   if (raw) {
     try { db = JSON.parse(raw); } catch(e) {}
   }
   normalizeDbShape();
+  syncInvoiceDbRef();
 }
 
 // ─── ID + DATE ────────────────────────────────────────────────────────────────
@@ -596,7 +601,10 @@ function renderFacturen(data) {
       <td class="td-mono">${fmt(f.datum)}</td>
       <td class="td-mono">${fmt(f.verval)||'—'}</td>
       <td><span class="badge badge-status-${f.status||'concept'}">${f.status||'concept'}</span></td>
-      <td><button class="btn btn-ghost" style="padding:3px 8px;font-size:11px" onclick="event.stopPropagation();del('facturen','${f.id}')">✕</button></td>
+      <td style="text-align:right;white-space:nowrap">
+        <button type="button" class="btn btn-ghost" style="padding:3px 8px;font-size:11px" title="Download PDF" onclick="event.stopPropagation();downloadFactuurPdf('${f.id}')">PDF</button>
+        <button type="button" class="btn btn-ghost" style="padding:3px 8px;font-size:11px" title="Verwijderen" onclick="event.stopPropagation();del('facturen','${f.id}')">✕</button>
+      </td>
     </tr>`;
   });
   document.getElementById('facturen-tbody').innerHTML = rows.join('') ||
@@ -619,6 +627,7 @@ function renderFacturen(data) {
       <div class="fac-mobile-row"><span>Totaal</span><strong>€${tot.toLocaleString('nl-BE',{minimumFractionDigits:2})}</strong></div>
       <div class="fac-mobile-row"><span>Vervaldag</span><strong>${fmt(f.verval)||'—'}</strong></div>
       <div class="fac-mobile-actions">
+        <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px" onclick="event.stopPropagation();downloadFactuurPdf('${f.id}')">PDF</button>
         <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px" onclick="event.stopPropagation();changeFactuurStatus('${f.id}','betaald')">Markeer betaald</button>
         <button class="btn btn-danger" style="font-size:11px;padding:5px 10px" onclick="event.stopPropagation();del('facturen','${f.id}')">Verwijder</button>
       </div>
@@ -690,6 +699,7 @@ function openFactuurDetail(id) {
       </div>`).join('')}
     </div>` : ''}
     <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="downloadFactuurPdf('${id}')">📄 Download PDF</button>
       <button class="btn btn-primary" onclick="editFactuur('${id}')">Bewerken</button>
       <button class="btn btn-primary" onclick="changeFactuurStatus('${id}','betaald')">✓ Betaald</button>
       <button class="btn btn-ghost" onclick="changeFactuurStatus('${id}','vervallen')">Vervallen</button>
@@ -1539,6 +1549,7 @@ function renderArchFacturen(id) {
       <div style="flex:1;font-size:13px;color:var(--text2)">${f.desc||'—'}</div>
       <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700">€${(f.totaal||0).toLocaleString('nl-BE',{minimumFractionDigits:2})}</div>
       <span class="badge badge-status-${f.status||'concept'}">${f.status||'concept'}</span>
+      <button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:11px;flex-shrink:0" onclick="event.stopPropagation();downloadFactuurPdf('${f.id}')">PDF</button>
     </div>`).join('') :
     `<div class="empty"><div class="empty-icon">📄</div><div class="empty-text">Geen facturen voor dit project</div></div>`;
 }
@@ -2123,6 +2134,7 @@ function importData(e) {
       if (data.klanten || data.projecten || data.uitgaven || data.inkomsten) {
         db = data;
         normalizeDbShape();
+        syncInvoiceDbRef();
         save(); render();
         toast('✓ Data geïmporteerd');
       } else { toast('❌ Ongeldig bestand'); }
@@ -3340,7 +3352,7 @@ function installClickSafetyGuards() {
     'openFinKeuzeModal','finKiesUitgave','finKiesInkomen','saveFinUitgave','saveFinInkomen',
     'delFinUitgave','delFinInkomen','openFinUitgaveModal','openFinInkomenModal','setFinJaar','updateFinUitgaveCategoryHint','showFinTab',
     'openProjectArch','openProjectDetail','editProject','editKlant','switchArchTab','saveProjectNotes',
-    'saveFollowupMailSettings'
+    'saveFollowupMailSettings','downloadFactuurPdf'
   ];
   names.forEach((name) => {
     const fn = window[name];
