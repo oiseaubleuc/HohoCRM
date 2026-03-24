@@ -288,6 +288,14 @@ nav.scrolled {
   transform: translateY(-2px);
   box-shadow: 0 16px 40px rgba(124,106,247,0.3);
 }
+.btn-locked {
+  opacity: 0.55;
+  filter: grayscale(0.25);
+}
+.btn-locked:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
 .btn-hero-secondary {
   display: flex;
   align-items: center;
@@ -1285,7 +1293,7 @@ footer {
           <li class="off"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Cloud sync</li>
           <li class="off"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>PDF facturen</li>
         </ul>
-        <a href="#download" class="btn-pricing btn-pricing-ghost">Gratis downloaden</a>
+        <a href="/" class="btn-pricing btn-pricing-ghost">Bekijk demo</a>
       </div>
       <div class="pricing-card featured">
         <div class="featured-badge">Meest gekozen</div>
@@ -1576,19 +1584,19 @@ footer {
 <!-- ── DOWNLOAD CTA ── -->
 <div class="cta-section" id="download">
   <div class="cta-bg"></div>
-  <h2 class="cta-title reveal">Klaar om te starten?<br><em>Download gratis.</em></h2>
-  <p class="cta-sub reveal">Eén bestand. Geen installatie. Werkt op elk apparaat. Jouw data blijft van jou.</p>
+  <h2 class="cta-title reveal">Klaar om te starten?<br><em>Activeer je toegang.</em></h2>
+  <p class="cta-sub reveal">Download is alleen beschikbaar na succesvolle betaling via Stripe.</p>
   <div class="cta-actions reveal">
-    <a href="#" class="btn-hero-primary" onclick="alert('Download link: voeg hier jouw hosting URL in voor het .pkg bestand')">
+    <a href="#pricing" id="download-pkg-btn" class="btn-hero-primary btn-locked">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
       Download voor Mac (.pkg)
     </a>
-    <a href="#" class="btn-hero-secondary" onclick="alert('Download link: voeg hier jouw hosting URL in voor het .html bestand')">
+    <a href="#pricing" id="download-html-btn" class="btn-hero-secondary btn-locked">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       HTML versie (.html)
     </a>
   </div>
-  <div class="cta-note reveal">Gratis voor altijd · Geen registratie · Mac · iPad · iPhone · Android</div>
+  <div class="cta-note reveal" id="download-access-note">🔒 Vergrendeld: eerst betaling uitvoeren in de prijssectie.</div>
 </div>
 
 <!-- ── CONTACT ── -->
@@ -1761,6 +1769,8 @@ footer {
 // Plak hier je Stripe Payment Links.
 const STRIPE_PRO_LINK  = 'https://buy.stripe.com/REPLACE_WITH_PRO_LINK';
 const STRIPE_TEAM_LINK = 'https://buy.stripe.com/REPLACE_WITH_TEAM_LINK';
+const DOWNLOAD_PKG_LINK = 'https://example.com/HohohSolutions-CRM.pkg';
+const DOWNLOAD_HTML_LINK = 'https://example.com/HohohSolutions-CRM.html';
 // Stel in Stripe "After payment" redirect in naar:
 // https://jouwdomein/hohohsolutions-website.html?paid=1&type=pro
 // https://jouwdomein/hohohsolutions-website.html?paid=1&type=team
@@ -1785,11 +1795,42 @@ function handlePaidAccessState() {
   const paid = params.get('paid');
   const sessionId = params.get('session_id');
   const panel = document.getElementById('paid-access');
+  let hasAccess = localStorage.getItem('hohoh_paid_access') === '1';
   if (!panel) return;
   if (paid === '1' || !!sessionId) {
+    hasAccess = true;
+    localStorage.setItem('hohoh_paid_access', '1');
     panel.classList.add('show');
     setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'center' }), 220);
+  } else if (hasAccess) {
+    panel.classList.add('show');
   }
+  updateDownloadAccessState(hasAccess);
+}
+
+function updateDownloadAccessState(hasAccess) {
+  const pkg = document.getElementById('download-pkg-btn');
+  const html = document.getElementById('download-html-btn');
+  const note = document.getElementById('download-access-note');
+  if (!pkg || !html || !note) return;
+  if (hasAccess) {
+    pkg.href = DOWNLOAD_PKG_LINK;
+    html.href = DOWNLOAD_HTML_LINK;
+    pkg.target = '_blank';
+    html.target = '_blank';
+    pkg.rel = 'noopener';
+    html.rel = 'noopener';
+    pkg.classList.remove('btn-locked');
+    html.classList.remove('btn-locked');
+    note.textContent = '✅ Toegang geactiveerd: je kan nu downloaden.';
+    return;
+  }
+  const lockHandler = (e) => {
+    e.preventDefault();
+    document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  pkg.addEventListener('click', lockHandler);
+  html.addEventListener('click', lockHandler);
 }
 
 wireStripeButtons();
