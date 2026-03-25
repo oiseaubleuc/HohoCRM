@@ -13,6 +13,8 @@
     email: 'hohoservicess@gmail.com',
     phone: '+32451015476',
     legalNote0Btw: 'Bijzondere vrijstellingsregeling kleine ondernemingen - btw niet van toepassing.',
+    /** Pad relatief aan webroot (Vite public → dist root), of volledige URL / data-URL */
+    logoPath: '/invoice-logo.png',
   };
 
   function getBranding() {
@@ -54,8 +56,15 @@
     return lines.join('\n');
   }
 
-  /** Zwart vierkant + wit raket-icoon (zelfde stijl als voorbeeldfactuur) */
-  function logoDataUri() {
+  function invoiceLogoSrc(b) {
+    const p = (b && b.logoPath != null) ? String(b.logoPath).trim() : '/invoice-logo.png';
+    if (!p) return logoDataUriFallback();
+    if (p.startsWith('data:') || /^https?:\/\//i.test(p)) return p;
+    return p;
+  }
+
+  /** Fallback als geen logoPath / bestand ontbreekt */
+  function logoDataUriFallback() {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" width="72" height="72">
       <rect width="72" height="72" fill="#0d0d0d"/>
       <ellipse cx="36" cy="42" rx="24" ry="11" fill="none" stroke="#fff" stroke-width="1.8" transform="rotate(-14 36 42)"/>
@@ -145,7 +154,7 @@
 <style>
   .inv { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10.5pt; color: #111; width: 190mm; padding: 12mm 14mm; box-sizing: border-box; background: #fff; }
   .inv-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10mm; }
-  .logo { width: 56px; height: 56px; flex-shrink: 0; }
+  .logo { height: 56px; width: auto; max-width: 80px; object-fit: contain; flex-shrink: 0; display: block; }
   .meta { text-align: right; font-size: 10pt; }
   .meta h1 { margin: 0 0 8px; font-size: 15pt; font-weight: 700; letter-spacing: 0.02em; }
   .meta-row { margin: 2px 0; }
@@ -171,7 +180,7 @@
   .page-num { margin-top: 4mm; font-size: 8pt; color: #666; text-align: right; }
 </style>
   <div class="inv-head">
-    <img class="logo" src="${logoDataUri()}" width="56" height="56" alt="" />
+    <img class="logo" src="${escapeHtml(invoiceLogoSrc(b))}" width="72" height="56" alt="" />
     <div class="meta">
       <h1>${headerTitle}</h1>
       <div class="meta-row"><strong>Factuurdatum</strong> ${escapeHtml(fmtPdfDate(f.datum))}</div>
@@ -251,6 +260,47 @@
     const inner = wrapper.querySelector('.inv');
 
     function runPdf() {
+      const filename = opt.filename;
+
+      // Native macOS app: avoid blob: URLs (WKWebView can't "open" them).
+      const nativeDl = (typeof window !== 'undefined')
+        && window.webkit
+        && window.webkit.messageHandlers
+        && window.webkit.messageHandlers.hohohDownload
+        && typeof window.webkit.messageHandlers.hohohDownload.postMessage === 'function';
+
+      if (nativeDl) {
+        html2pdf()
+          .set(opt)
+          .from(inner)
+          .toPdf()
+          .get('pdf')
+          .then((pdf) => {
+            const ab = pdf.output('arraybuffer');
+            const bytes = new Uint8Array(ab);
+            let binary = '';
+            const chunk = 0x8000;
+            for (let i = 0; i < bytes.length; i += chunk) {
+              binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+            }
+            const base64 = btoa(binary);
+            window.webkit.messageHandlers.hohohDownload.postMessage({
+              filename,
+              mime: 'application/pdf',
+              base64,
+            });
+            wrapper.remove();
+            if (typeof toast === 'function') toast('✓ PDF opgeslagen');
+          })
+          .catch((err) => {
+            console.error(err);
+            wrapper.remove();
+            if (typeof toast === 'function') toast('❌ PDF mislukt');
+          });
+        return;
+      }
+
+      // Browser path (normal download).
       html2pdf()
         .set(opt)
         .from(inner)

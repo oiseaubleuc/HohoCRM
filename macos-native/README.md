@@ -16,7 +16,7 @@ chmod +x build-native-mac-app.sh
 ./build-native-mac-app.sh
 ```
 
-Résultat : **`HohohSolutions CRM Native.app`** à la racine (webapp `dist/` copiée dans `Contents/Resources/webroot/`).
+Résultat : **`../artifacts/HohohSolutions CRM Native.app`** (webapp `dist/` copiée dans `Contents/Resources/webroot/`). Lance `./build-native-mac-app.sh` depuis la racine du dépôt.
 
 ## Code source
 

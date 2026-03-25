@@ -20,15 +20,15 @@ case "$CHOICE" in
     printf "\nKlaar. Webapp build staat in: webapp/dist\n"
     ;;
   2)
-    "$ROOT/build.sh" all
+    "$ROOT/scripts/build.sh" all
     printf "\nKlaar. Installer bestanden staan in de root map (.pkg en .dmg).\n"
     ;;
   3)
-    "$ROOT/build-native-mac-app.sh"
+    "$ROOT/scripts/build-native-mac-app.sh"
     printf "\nKlaar. Native app staat in de root map (.app).\n"
     ;;
   4)
-    "$ROOT/build-full-package.sh"
+    "$ROOT/scripts/build-full-package.sh"
     printf "\nKlaar. Volledig pakket staat in releases/.\n"
     ;;
   *)

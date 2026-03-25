@@ -3,12 +3,10 @@ webapp/node_modules/
 webapp/dist/
 webapp/.env
 macos-native/.build/
-*.dmg
-*.pkg
 build/
-HohohSolutions CRM Native.app
+artifacts/
+!artifacts/.gitkeep
 releases/
-Te-testen/*.app
 updates/dist/
 updates/*private*
 updates/*.pem

@@ -3372,7 +3372,25 @@ function installClickSafetyGuards() {
 }
 
 window.addEventListener('error', (e) => {
+  const msg =
+    (e.error && e.error.message) ? e.error.message :
+    (e.message ? String(e.message) : 'Onbekende JS fout');
   console.error('Uncaught error:', e.error || e.message);
+  // In de native WKWebView zien we de console niet altijd; toon daarom ook een toast.
+  try {
+    if (typeof toast === 'function') toast(`❌ JS fout: ${msg}`);
+  } catch {}
+});
+
+// Promise fouten (async) kunnen ook de UI "stil" laten falen.
+window.addEventListener('unhandledrejection', (e) => {
+  const msg =
+    (e.reason && e.reason.message) ? e.reason.message :
+    (e.reason ? String(e.reason) : 'Onbekende unhandled rejection');
+  console.error('Unhandled rejection:', e.reason || e);
+  try {
+    if (typeof toast === 'function') toast(`❌ JS async fout: ${msg}`);
+  } catch {}
 });
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────

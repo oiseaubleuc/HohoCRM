@@ -9,21 +9,27 @@ Repository met een **volledige webapp** (Vite + vanilla JS) en scripts om een **
 ```
 hohoh-pkg-builder/
 ├── webapp/                    ← Broncode van de CRM-webapp
-│   ├── index.html
-│   ├── public/crm-app.js      Applicatielogica
-│   ├── src/main.js            Vite-entry (importeert CSS)
-│   ├── src/styles/app.css
-│   ├── package.json
-│   └── README.md              Details: dev/build
 ├── macos-native/              ← Native Mac-app (SwiftUI + WebKit)
-│   ├── Package.swift
-│   ├── Info.plist
-│   └── Sources/HohohSolutionsCRMNative/
-├── build.sh                   Bouwt webapp + native app + .pkg / .dmg (installeert echte Mac-app)
-├── build-native-mac-app.sh    Bouwt HohohSolutions CRM Native.app (Swift + WKWebView)
-├── build-full-package.sh      Bouwt volledige releasebundel in releases/
-├── generate_icon.py
-└── payload/Applications/...   Oude launcher-template (referentie; installer gebruikt native build)
+├── scripts/                   ← Bouwscripts (logica)
+│   ├── build.sh
+│   ├── build-native-mac-app.sh
+│   ├── build-full-package.sh
+│   └── publish-mac-update.sh
+├── tools/
+│   └── generate_icon.py       ← Genereert AppIcon.icns
+├── marketing/
+│   └── hohohsolutions-website.html
+├── artifacts/                 ← .pkg, .dmg, test-.app (niet in git; wel .gitkeep)
+├── build/                     ← Tijdelijke installer-bestanden (niet in git)
+├── netlify/                   ← Serverless (o.a. opvolgmail)
+├── docs/
+├── updates/                   ← Sparkle-documentatie
+├── build.sh                   ← Wrapper → scripts/build.sh
+├── build-native-mac-app.sh
+├── build-full-package.sh
+├── publish-mac-update.sh
+├── build-easy.command
+└── payload/                   ← Oude launcher-template (referentie)
 ```
 
 ### Native Mac-app (aanbevolen als “echte” desktop-app)
@@ -33,7 +39,7 @@ chmod +x build-native-mac-app.sh
 ./build-native-mac-app.sh
 ```
 
-Levert **`HohohSolutions CRM Native.app`**: de CRM draait **in een macOS-venster** (WKWebView). Er wordt **geen** Safari/Chrome geopend. Een kleine ingebouwde HTTP-server draait alleen **binnen de app** (localhost) zodat `localStorage` betrouwbaar werkt.
+Levert **`artifacts/HohohSolutions CRM Native.app`** (en een kopie in **`artifacts/Te-testen/`** om te proberen): de CRM draait **in een macOS-venster** (WKWebView). Er wordt **geen** Safari/Chrome geopend. Een kleine ingebouwde HTTP-server draait alleen **binnen de app** (localhost) zodat `localStorage` betrouwbaar werkt.
 
 **Automatische updates (Sparkle):** ingebouwd. Stel `SUFeedURL` en `SUPublicEDKey` in `macos-native/Info.plist` in, host een `appcast.xml` + getekende zip op HTTPS, en gebruik `./publish-mac-update.sh <versie>`. Volledige stappen: [`updates/SPARKLE-UPDATES.md`](updates/SPARKLE-UPDATES.md).
 
@@ -56,7 +62,7 @@ Open http://localhost:5173 — hot reload tijdens bewerken.
 - macOS **13.0** of nieuwer (native app)
 - **Node.js + npm** (https://nodejs.org) — voor `npm run build` in `webapp/`
 - Xcode Command Line Tools (`xcode-select --install`) — o.a. **Swift** voor de native app
-- **Python 3** — alleen nodig op de **bouwmachine** om `AppIcon.icns` te genereren (`generate_icon.py`); de geïnstalleerde klant-app vereist geen Python
+- **Python 3** — alleen nodig op de **bouwmachine** om `AppIcon.icns` te genereren (`tools/generate_icon.py`); de geïnstalleerde klant-app vereist geen Python
 
 ---
 
@@ -68,8 +74,8 @@ chmod +x build.sh
 
 | Commando | Resultaat |
 |----------|-----------|
-| `./build.sh` | `.pkg` (installeert naar `/Applications`) |
-| `./build.sh dmg` | `.dmg` (app slepen naar Programma’s) |
+| `./build.sh` | `.pkg` in `artifacts/` (installeert naar `/Applications`) |
+| `./build.sh dmg` | `.dmg` in `artifacts/` (app slepen naar Programma’s) |
 | `./build.sh all` | beide |
 
 Het script bouwt de webapp, daarna **`build-native-mac-app.sh`** (Swift), en plaatst het resultaat als **`/Applications/HohohSolutions CRM.app`** in de installer (zelfde UI als de webapp, maar **in een eigen venster**, niet in je standaardbrowser).
@@ -120,8 +126,8 @@ Voor klantenlevering kies je meestal `4`.
 ```bash
 productsign \
   --sign "Developer ID Installer: JOUW NAAM (TEAMID)" \
-  HohohSolutions-CRM-v1.0.0.pkg \
-  HohohSolutions-CRM-v1.0.0-signed.pkg
+  artifacts/HohohSolutions-CRM-v1.0.0.pkg \
+  artifacts/HohohSolutions-CRM-v1.0.0-signed.pkg
 ```
 
 ---
