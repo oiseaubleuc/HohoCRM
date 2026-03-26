@@ -13,6 +13,77 @@ let calMonth = new Date().getMonth();
 let selectedDay = null;
 let autoFollowupTriggeredToday = false;
 
+// ─── ADMIN (offline, localStorage) ─────────────────────────────────────────
+// Deze app gebruikt momenteel localStorage als database.
+// Admin is dus ook per apparaat/browser: voor iPhone sync doen we via export/import.
+const ADMIN_PASSWORD_KEY = 'hohoh_admin_password';
+const ADMIN_AUTH_KEY = 'hohoh_admin_authed';
+
+// Gebruik dit vaste wachtwoord voor admin.
+// (Offline: per toestel/browser lokaal opgeslagen.)
+const ADMIN_DEFAULT_PASSWORD = 'Admin123';
+
+function randAdminPassword(len = 18) {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%?';
+  try {
+    const arr = new Uint32Array(len);
+    crypto.getRandomValues(arr);
+    return Array.from(arr, (n) => chars[n % chars.length]).join('');
+  } catch {
+    // Fallback als crypto om welke reden dan ook niet beschikbaar is.
+    let out = '';
+    for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
+    return out;
+  }
+}
+
+function isAdminAuthed() {
+  try { return localStorage.getItem(ADMIN_AUTH_KEY) === '1'; } catch { return false; }
+}
+
+function ensureAdminExistsAndAuthed(showPasswordOnce = true) {
+  const existing = (() => {
+    try { return localStorage.getItem(ADMIN_PASSWORD_KEY); } catch { return null; }
+  })();
+
+  if (existing) {
+    return;
+  }
+
+  // Maak admin wachtwoord aan (vast).
+  const pw = ADMIN_DEFAULT_PASSWORD;
+  try {
+    localStorage.setItem(ADMIN_PASSWORD_KEY, pw);
+    localStorage.setItem('hohoh_admin_created_at', new Date().toISOString());
+  } catch {}
+
+  if (showPasswordOnce) {
+    try {
+      // WKWebView heeft prompt niet native; maar macOS app heeft al prompt handlers.
+      prompt('Admin account aangemaakt.\nKopieer dit wachtwoord (belangrijk voor import/export op andere toestellen):', pw);
+    } catch {}
+  }
+}
+
+function requireAdmin() {
+  ensureAdminExistsAndAuthed(true);
+  if (isAdminAuthed()) return true;
+
+  const pwSaved = (() => {
+    try { return localStorage.getItem(ADMIN_PASSWORD_KEY); } catch { return null; }
+  })();
+
+  const pw = prompt('Admin wachtwoord vereist om wijzigingen op te slaan:');
+  if (pwSaved && pw === pwSaved) {
+    try { localStorage.setItem(ADMIN_AUTH_KEY, '1'); } catch {}
+    toast('✓ Admin geauthenticeerd');
+    return true;
+  }
+
+  toast('❌ Admin wachtwoord fout');
+  return false;
+}
+
 function normalizeDbShape() {
   if (!db || typeof db !== 'object') db = {};
   ['klanten','projecten','taken','facturen','apis','afspraken','todoLists','meetings','uitgaven','inkomsten'].forEach(k => {
@@ -25,6 +96,8 @@ function normalizeDbShape() {
 // ─── PERSISTENCE ─────────────────────────────────────────────────────────────
 function save() {
   normalizeDbShape();
+  // Zonder admin mogen we niet persistenten naar localStorage.
+  if (!requireAdmin()) return;
   localStorage.setItem('mijncrm', JSON.stringify(db));
 }
 
@@ -2114,7 +2187,13 @@ async function delFinInkomen(id) {
 
 // ─── EXPORT / IMPORT ─────────────────────────────────────────────────────────
 function exportData() {
-  const blob = new Blob([JSON.stringify(db, null, 2)], {type:'application/json'});
+  if (!requireAdmin()) return;
+  const hohohAdmin = {
+    password: (() => { try { return localStorage.getItem(ADMIN_PASSWORD_KEY); } catch { return null; } })(),
+    createdAt: (() => { try { return localStorage.getItem('hohoh_admin_created_at'); } catch { return null; } })(),
+  };
+  const payload = { version: 1, db, hohohAdmin };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'mijncrm-backup-' + today() + '.json';
@@ -2131,8 +2210,20 @@ function importData(e) {
   r.onload = ev => {
     try {
       const data = JSON.parse(ev.target.result);
-      if (data.klanten || data.projecten || data.uitgaven || data.inkomsten) {
-        db = data;
+
+      const incomingDb = (data && data.db && typeof data.db === 'object') ? data.db : data;
+
+      if (incomingDb && (incomingDb.klanten || incomingDb.projecten || incomingDb.uitgaven || incomingDb.inkomsten)) {
+        // Admin mee importeren (zodat export/import ook op iPhone werkt).
+        if (data && data.hohohAdmin && typeof data.hohohAdmin.password === 'string') {
+          try {
+            localStorage.setItem(ADMIN_PASSWORD_KEY, data.hohohAdmin.password);
+            localStorage.setItem(ADMIN_AUTH_KEY, '1');
+            if (data.hohohAdmin.createdAt) localStorage.setItem('hohoh_admin_created_at', data.hohohAdmin.createdAt);
+          } catch {}
+        }
+
+        db = incomingDb;
         normalizeDbShape();
         syncInvoiceDbRef();
         save(); render();
@@ -3395,5 +3486,7 @@ window.addEventListener('unhandledrejection', (e) => {
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 load();
+// Maak admin meteen aan bij eerste run (vasts wachtwoord).
+ensureAdminExistsAndAuthed(true);
 installClickSafetyGuards();
 render();
