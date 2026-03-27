@@ -3,6 +3,7 @@
   "private": true,
   "description": "Root deps for Netlify Functions (Gmail opvolgmail)",
   "dependencies": {
+    "@netlify/blobs": "^10.7.4",
     "nodemailer": "^6.9.16"
   }
 }

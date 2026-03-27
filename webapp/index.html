@@ -710,7 +710,10 @@
     <div class="proj-arch-panel" id="arch-panel-bestanden">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
         <div style="font-size:13px;font-weight:700">Bestanden & Links</div>
-        <button class="btn btn-primary" onclick="addBestand()">+ Toevoegen</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost" onclick="uploadBestandFromDevice()">Upload van toestel</button>
+          <button class="btn btn-primary" onclick="addBestand()">+ Toevoegen</button>
+        </div>
       </div>
       <div class="table-wrap">
         <div id="arch-bestanden-list"></div>

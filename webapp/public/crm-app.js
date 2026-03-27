@@ -19,13 +19,78 @@ let autoFollowupTriggeredToday = false;
 const ADMIN_PASSWORD_KEY = 'hohoh_admin_password';
 const ADMIN_AUTH_KEY = 'hohoh_admin_authed';
 const ADMIN_USERNAME = 'admin';
+const CLOUD_SYNC_AUTH_KEY = 'hohoh_cloud_sync_auth';
 
 // Gebruik dit vaste wachtwoord voor admin.
 // (Offline: per toestel/browser lokaal opgeslagen.)
 const ADMIN_DEFAULT_PASSWORD = 'Admin123';
+let cloudSaveTimer = null;
+let currentAdminPassword = null;
 
 function isAdminAuthed() {
   try { return localStorage.getItem(ADMIN_AUTH_KEY) === '1'; } catch { return false; }
+}
+
+function cloudSyncEnabled() {
+  // Werkt op Netlify deploy of localhost met `netlify dev`.
+  const host = (typeof location !== 'undefined' && location.host) ? location.host : '';
+  return host.includes('netlify') || host.includes('localhost');
+}
+
+async function cloudPost(path, payload) {
+  if (!cloudSyncEnabled()) return { ok: false, skipped: true };
+  try {
+    const res = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, error: data.error || `HTTP ${res.status}` };
+    return { ok: true, data };
+  } catch (e) {
+    return { ok: false, error: e?.message || 'Network error' };
+  }
+}
+
+async function cloudLoginAndPull(username, password) {
+  if (!cloudSyncEnabled()) return;
+  const auth = await cloudPost('/.netlify/functions/crm-auth', { username, password });
+  if (!auth.ok) {
+    toast(`❌ Cloud login mislukt: ${auth.error || 'onbekend'}`);
+    return;
+  }
+
+  const loaded = await cloudPost('/.netlify/functions/crm-load', { username, password });
+  if (!loaded.ok) {
+    toast(`⚠ Cloud load mislukt: ${loaded.error || 'onbekend'}`);
+    return;
+  }
+
+  const remoteDb = loaded.data?.db;
+  if (remoteDb && typeof remoteDb === 'object') {
+    db = remoteDb;
+    normalizeDbShape();
+    syncInvoiceDbRef();
+    localStorage.setItem('mijncrm', JSON.stringify(db));
+    render();
+    toast('✓ Cloud data geladen');
+  } else {
+    // Eerste keer: push lokale db naar cloud.
+    await cloudPost('/.netlify/functions/crm-save', { username, password, db });
+    toast('✓ Cloud account klaar');
+  }
+}
+
+function scheduleCloudSave() {
+  if (!cloudSyncEnabled()) return;
+  if (!isAdminAuthed() || !currentAdminPassword) return;
+  if (cloudSaveTimer) clearTimeout(cloudSaveTimer);
+  cloudSaveTimer = setTimeout(async () => {
+    const username = ADMIN_USERNAME;
+    const password = currentAdminPassword;
+    await cloudPost('/.netlify/functions/crm-save', { username, password, db });
+  }, 700);
 }
 
 function ensureAdminExistsAndAuthed(showPasswordOnce = true) {
@@ -112,8 +177,11 @@ function attemptAdminLogin() {
   })();
   if (user === ADMIN_USERNAME && pwSaved && pass === pwSaved) {
     try { localStorage.setItem(ADMIN_AUTH_KEY, '1'); } catch {}
+    currentAdminPassword = pass;
+    try { localStorage.setItem(CLOUD_SYNC_AUTH_KEY, JSON.stringify({ u: user, p: pass })); } catch {}
     hideLoginScreen();
     toast('✓ Admin geauthenticeerd');
+    cloudLoginAndPull(user, pass);
     return true;
   }
   showLoginScreen('Onjuiste gebruikersnaam of wachtwoord.');
@@ -142,6 +210,7 @@ function save() {
   // Zonder admin mogen we niet persistenten naar localStorage.
   if (!requireAdmin()) return;
   localStorage.setItem('mijncrm', JSON.stringify(db));
+  scheduleCloudSave();
 }
 
 function syncInvoiceDbRef() {
@@ -1595,10 +1664,10 @@ function renderArchBestanden(id) {
       <div class="file-icon">${icons[b.type]||'📎'}</div>
       <div style="flex:1">
         <div class="file-name">${b.naam}</div>
-        <div class="file-meta">${b.type||'link'} ${b.datum?'· '+fmt(b.datum):''}</div>
+        <div class="file-meta">${b.type||'link'} ${b.datum?'· '+fmt(b.datum):''}${b.fileSize?` · ${Math.round((b.fileSize/1024)*10)/10} KB`:''}</div>
         ${b.note?`<div style="font-size:11px;color:var(--text2);margin-top:2px">${b.note}</div>`:''}
       </div>
-      ${b.url?`<a href="${b.url}" target="_blank" class="btn btn-ghost" style="padding:4px 10px;font-size:12px">Openen</a>`:''}
+      ${b.url?`<a href="${b.url}" ${b.url.startsWith('data:') ? `download="${escapeArchAttr(b.downloadName || b.naam || 'bestand')}"` : 'target="_blank"'} class="btn btn-ghost" style="padding:4px 10px;font-size:12px">${b.url.startsWith('data:') ? 'Download' : 'Openen'}</a>`:''}
       <button onclick="delBestand(${i})" class="btn btn-ghost" style="padding:4px 8px;font-size:12px;color:var(--text3)">✕</button>
     </div>`).join('') :
     `<div class="empty"><div class="empty-icon">📁</div><div class="empty-text">Nog geen bestanden of links</div></div>`;
@@ -1639,6 +1708,65 @@ async function addBestand() {
 function delBestand(i) {
   db.arch[currentArchProjectId].bestanden.splice(i,1);
   save(); renderArchBestanden(currentArchProjectId);
+}
+
+function detectBestandType(fileName = '', mime = '') {
+  const n = String(fileName || '').toLowerCase();
+  const m = String(mime || '').toLowerCase();
+  if (m.includes('pdf') || n.endsWith('.pdf')) return 'pdf';
+  if (n.includes('figma')) return 'figma';
+  if (n.includes('github')) return 'github';
+  if (n.includes('notion')) return 'notion';
+  return 'other';
+}
+
+function uploadBestandFromDevice() {
+  const id = currentArchProjectId;
+  if (!id) {
+    toast('❌ Selecteer eerst een project');
+    return;
+  }
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.rtf,.jpg,.jpeg,.png,.webp,.zip,.csv,.json';
+  input.style.display = 'none';
+  input.addEventListener('change', () => {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    // localStorage heeft limiet; houd uploads compact zodat de app stabiel blijft.
+    if (file.size > 5 * 1024 * 1024) {
+      toast('❌ Bestand te groot (max 5MB voor lokale opslag)');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = String(reader.result || '');
+      if (!url.startsWith('data:')) {
+        toast('❌ Upload mislukt');
+        return;
+      }
+      if (!db.arch[id]) db.arch[id] = { kanban:{todo:[],inprogress:[],review:[],done:[]}, tech:[], bestanden:[], tijdlijn:[], notities:'' };
+      const item = {
+        naam: file.name,
+        url,
+        type: detectBestandType(file.name, file.type),
+        note: `Lokaal geüpload vanaf toestel`,
+        datum: today(),
+        fileSize: file.size,
+        mime: file.type || '',
+        downloadName: file.name
+      };
+      db.arch[id].bestanden.push(item);
+      save();
+      renderArchBestanden(id);
+      toast('✓ Bestand geüpload');
+    };
+    reader.onerror = () => toast('❌ Kon bestand niet lezen');
+    reader.readAsDataURL(file);
+  });
+  document.body.appendChild(input);
+  input.click();
+  setTimeout(() => input.remove(), 1200);
 }
 
 // NOTITIES
@@ -3531,6 +3659,19 @@ window.addEventListener('unhandledrejection', (e) => {
 load();
 // Maak admin meteen aan bij eerste run.
 ensureAdminExistsAndAuthed(false);
+try {
+  const raw = localStorage.getItem(CLOUD_SYNC_AUTH_KEY);
+  if (raw) {
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.u === ADMIN_USERNAME && typeof parsed.p === 'string') {
+      currentAdminPassword = parsed.p;
+    }
+  }
+} catch {}
 installClickSafetyGuards();
 render();
-if (!isAdminAuthed()) showLoginScreen('');
+if (!isAdminAuthed()) {
+  showLoginScreen('');
+} else if (currentAdminPassword) {
+  cloudLoginAndPull(ADMIN_USERNAME, currentAdminPassword);
+}
