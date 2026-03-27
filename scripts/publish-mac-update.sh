@@ -6,7 +6,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VER="${1:?Gebruik: ./publish-mac-update.sh 1.0.1}"
 shift
 
-APP_SRC="$ROOT/artifacts/Te-testen/HohohSolutions CRM.app"
+APP_SRC="$ROOT/artifacts/Te-testen/HOHOSOLUTIONCRM.app"
 if [ ! -d "$APP_SRC" ]; then
   echo "✗ $APP_SRC ontbreekt. Draai eerst: ./build-native-mac-app.sh"
   exit 1

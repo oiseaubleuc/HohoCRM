@@ -7,9 +7,9 @@ DATE_TAG="$(date +%Y%m%d-%H%M)"
 REL_NAME="HohoCRM-FullPackage-v${VERSION}-${DATE_TAG}"
 REL_DIR="$ROOT/releases/$REL_NAME"
 
-APP_PKG="$ROOT/artifacts/HohohSolutions-CRM-v1.0.0.pkg"
-APP_DMG="$ROOT/artifacts/HohohSolutions-CRM-v1.0.0.dmg"
-NATIVE_APP="$ROOT/artifacts/HohohSolutions CRM Native.app"
+APP_PKG="$ROOT/artifacts/HOHOSOLUTIONCRM-v1.0.0.pkg"
+APP_DMG="$ROOT/artifacts/HOHOSOLUTIONCRM-v1.0.0.dmg"
+NATIVE_APP="$ROOT/artifacts/HOHOSOLUTIONCRM Native.app"
 WEB_DIST="$ROOT/webapp/dist"
 VITRINE_HTML="$ROOT/marketing/hohohsolutions-website.html"
 
@@ -78,7 +78,7 @@ fi
 # 5) Zip convenience bundles
 (
   cd "$REL_DIR"
-  ditto -c -k --sequesterRsrc --keepParent "native/HohohSolutions CRM Native.app" "installers/HohohSolutions-CRM-Native.app.zip" || true
+  ditto -c -k --sequesterRsrc --keepParent "native/HOHOSOLUTIONCRM Native.app" "installers/HOHOSOLUTIONCRM-Native.app.zip" || true
   ditto -c -k --sequesterRsrc --keepParent "webapp" "webapp/HohoCRM-webapp-dist.zip" || true
 )
 
@@ -99,9 +99,9 @@ cat > "$REL_DIR/README-CUSTOMER.txt" <<TXT
 HohoCRM - Full Package v${VERSION}
 
 Inhoud:
-- installers/HohohSolutions-CRM-v1.0.0.pkg
-- installers/HohohSolutions-CRM-v1.0.0.dmg
-- native/HohohSolutions CRM Native.app
+- installers/HOHOSOLUTIONCRM-v1.0.0.pkg
+- installers/HOHOSOLUTIONCRM-v1.0.0.dmg
+- native/HOHOSOLUTIONCRM Native.app
 - webapp/  (deploybare webbuild)
 - vitrine/ (vitrine website)
 - SHA256SUMS.txt

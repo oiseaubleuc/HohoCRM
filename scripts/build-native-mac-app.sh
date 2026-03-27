@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-APP_NAME="HohohSolutions CRM Native.app"
+APP_NAME="HOHOSOLUTIONCRM Native.app"
 mkdir -p "$ROOT/artifacts"
 APP_OUT="$ROOT/artifacts/$APP_NAME"
 
@@ -103,8 +103,8 @@ fi
 
 TEST_OUT="$ROOT/artifacts/Te-testen"
 mkdir -p "$TEST_OUT"
-rm -rf "$TEST_OUT/HohohSolutions CRM.app"
-cp -R "$APP_OUT" "$TEST_OUT/HohohSolutions CRM.app"
+rm -rf "$TEST_OUT/HOHOSOLUTIONCRM.app"
+cp -R "$APP_OUT" "$TEST_OUT/HOHOSOLUTIONCRM.app"
 
 echo ""
 echo "✅ Terminé : $APP_OUT"
