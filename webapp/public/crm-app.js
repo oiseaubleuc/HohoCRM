@@ -18,24 +18,11 @@ let autoFollowupTriggeredToday = false;
 // Admin is dus ook per apparaat/browser: voor iPhone sync doen we via export/import.
 const ADMIN_PASSWORD_KEY = 'hohoh_admin_password';
 const ADMIN_AUTH_KEY = 'hohoh_admin_authed';
+const ADMIN_USERNAME = 'admin';
 
 // Gebruik dit vaste wachtwoord voor admin.
 // (Offline: per toestel/browser lokaal opgeslagen.)
 const ADMIN_DEFAULT_PASSWORD = 'Admin123';
-
-function randAdminPassword(len = 18) {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%?';
-  try {
-    const arr = new Uint32Array(len);
-    crypto.getRandomValues(arr);
-    return Array.from(arr, (n) => chars[n % chars.length]).join('');
-  } catch {
-    // Fallback als crypto om welke reden dan ook niet beschikbaar is.
-    let out = '';
-    for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
-    return out;
-  }
-}
 
 function isAdminAuthed() {
   try { return localStorage.getItem(ADMIN_AUTH_KEY) === '1'; } catch { return false; }
@@ -56,31 +43,87 @@ function ensureAdminExistsAndAuthed(showPasswordOnce = true) {
     localStorage.setItem(ADMIN_PASSWORD_KEY, pw);
     localStorage.setItem('hohoh_admin_created_at', new Date().toISOString());
   } catch {}
-
-  if (showPasswordOnce) {
-    try {
-      // WKWebView heeft prompt niet native; maar macOS app heeft al prompt handlers.
-      prompt('Admin account aangemaakt.\nKopieer dit wachtwoord (belangrijk voor import/export op andere toestellen):', pw);
-    } catch {}
-  }
 }
 
-function requireAdmin() {
-  ensureAdminExistsAndAuthed(true);
-  if (isAdminAuthed()) return true;
+function ensureLoginScreen() {
+  if (document.getElementById('admin-login-screen')) return;
+  const style = document.createElement('style');
+  style.textContent = `
+    #admin-login-screen{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#0b1020,#151a2f);}
+    #admin-login-screen.hidden{display:none;}
+    .admin-login-card{width:min(92vw,380px);background:#ffffff;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.35);padding:22px;}
+    .admin-login-title{font-size:20px;font-weight:800;margin:0 0 6px;color:#111827;}
+    .admin-login-sub{font-size:13px;color:#4b5563;margin:0 0 16px;}
+    .admin-login-label{display:block;font-size:12px;font-weight:700;color:#374151;margin:10px 0 6px;}
+    .admin-login-input{width:100%;padding:10px 11px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;outline:none;box-sizing:border-box;}
+    .admin-login-input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.15);}
+    .admin-login-btn{width:100%;margin-top:14px;padding:10px 12px;border:0;border-radius:8px;background:#4f46e5;color:#fff;font-weight:700;cursor:pointer;}
+    .admin-login-btn:hover{filter:brightness(1.04);}
+    .admin-login-msg{min-height:18px;margin-top:8px;font-size:12px;color:#dc2626;}
+    .admin-login-hint{font-size:11px;color:#6b7280;margin-top:8px;}
+  `;
+  document.head.appendChild(style);
 
+  const el = document.createElement('div');
+  el.id = 'admin-login-screen';
+  el.innerHTML = `
+    <div class="admin-login-card">
+      <h1 class="admin-login-title">HohohSolutions CRM</h1>
+      <p class="admin-login-sub">Log in als admin om verder te gaan.</p>
+      <label class="admin-login-label" for="admin-login-user">Gebruiker</label>
+      <input id="admin-login-user" class="admin-login-input" value="${ADMIN_USERNAME}" autocomplete="username" />
+      <label class="admin-login-label" for="admin-login-pass">Wachtwoord</label>
+      <input id="admin-login-pass" class="admin-login-input" type="password" autocomplete="current-password" />
+      <button id="admin-login-btn" class="admin-login-btn" type="button">Inloggen</button>
+      <div id="admin-login-msg" class="admin-login-msg"></div>
+      <div class="admin-login-hint">Tip: gebruiker <b>${ADMIN_USERNAME}</b></div>
+    </div>
+  `;
+  document.body.appendChild(el);
+  const btn = document.getElementById('admin-login-btn');
+  const pass = document.getElementById('admin-login-pass');
+  if (btn) btn.addEventListener('click', attemptAdminLogin);
+  if (pass) pass.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') attemptAdminLogin();
+  });
+}
+
+function showLoginScreen(msg = '') {
+  ensureLoginScreen();
+  const root = document.getElementById('admin-login-screen');
+  const msgEl = document.getElementById('admin-login-msg');
+  if (msgEl) msgEl.textContent = msg;
+  if (root) root.classList.remove('hidden');
+  const pass = document.getElementById('admin-login-pass');
+  if (pass) pass.focus();
+}
+
+function hideLoginScreen() {
+  const root = document.getElementById('admin-login-screen');
+  if (root) root.classList.add('hidden');
+}
+
+function attemptAdminLogin() {
+  ensureAdminExistsAndAuthed(false);
+  const user = ((document.getElementById('admin-login-user') || {}).value || '').trim();
+  const pass = ((document.getElementById('admin-login-pass') || {}).value || '');
   const pwSaved = (() => {
     try { return localStorage.getItem(ADMIN_PASSWORD_KEY); } catch { return null; }
   })();
-
-  const pw = prompt('Admin wachtwoord vereist om wijzigingen op te slaan:');
-  if (pwSaved && pw === pwSaved) {
+  if (user === ADMIN_USERNAME && pwSaved && pass === pwSaved) {
     try { localStorage.setItem(ADMIN_AUTH_KEY, '1'); } catch {}
+    hideLoginScreen();
     toast('✓ Admin geauthenticeerd');
     return true;
   }
+  showLoginScreen('Onjuiste gebruikersnaam of wachtwoord.');
+  return false;
+}
 
-  toast('❌ Admin wachtwoord fout');
+function requireAdmin() {
+  ensureAdminExistsAndAuthed(false);
+  if (isAdminAuthed()) return true;
+  showLoginScreen('Admin login vereist om op te slaan.');
   return false;
 }
 
@@ -3486,7 +3529,8 @@ window.addEventListener('unhandledrejection', (e) => {
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 load();
-// Maak admin meteen aan bij eerste run (vasts wachtwoord).
-ensureAdminExistsAndAuthed(true);
+// Maak admin meteen aan bij eerste run.
+ensureAdminExistsAndAuthed(false);
 installClickSafetyGuards();
 render();
+if (!isAdminAuthed()) showLoginScreen('');
