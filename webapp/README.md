@@ -1,31 +1,33 @@
-# HohohSolutions CRM — webapp
+# Nebula — webapp
 
-Vanilla JavaScript CRM met Vite voor ontwikkeling en productie-build.
+Productie-webapp (**Nebula** by **HohohSolutions**): Vite + vanilla JS (`public/crm-app.js`), premium dark UI.
 
-## Scripts
+## Ontwikkelen
 
-| Commando | Omschrijving |
-|----------|----------------|
-| `npm install` | Dependencies installeren |
-| `npm run dev` | Dev-server (http://localhost:5173), hot reload |
-| `npm run build` | Statische site naar `dist/` (gebruikt door macOS `.pkg` / `.dmg`) |
-| `npm run preview` | Lokale preview van de build |
-
-## Structuur
-
-```
-webapp/
-├── index.html          Shell + markup
-├── public/
-│   ├── crm-app.js      Applicatielogica (globale handlers voor inline onclick)
-│   └── invoice-pdf.js  PDF-export factuur (html2pdf + QR); branding via localStorage `hohoh_invoice_branding`
-├── src/
-│   ├── main.js         Entry: importeert alleen CSS
-│   └── styles/
-│       └── app.css     Volledige UI-styling
-└── dist/               (na build) output voor de Mac-app
+```bash
+cd webapp
+npm install
+npm run dev
 ```
 
-## macOS-app
+## Build
 
-Vanaf de **repository root**: `./build.sh` of `./build.sh dmg` bouwt de webapp automatisch (`npm run build`) en kopieert `dist/` naar `Resources/` in de app bundle.
+```bash
+npm run build
+```
+
+Output: `dist/` (o.a. `index.html`, `crm-app.js`, `invoice-pdf.js`).
+
+## Belangrijke bestanden
+
+| Pad | Rol |
+|-----|-----|
+| `index.html` | Shell + pagina’s |
+| `public/crm-app.js` | Applicatielogica |
+| `public/invoice-pdf.js` | PDF-factuur; branding via `nebula_invoice_branding` (legacy: `hohoh_invoice_branding`) |
+| `src/styles/app.css` | Nebula design tokens |
+| `src/main.js` | CSS + thema (`nebula-theme`) |
+
+## Thema
+
+LocalStorage: `nebula-theme` (`light` / `dark`); oude `hohoh-theme` wordt nog gelezen voor migratie.

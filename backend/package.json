@@ -1,0 +1,18 @@
+{
+  "name": "nebula-api",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Nebula SaaS API — fundament (multi-tenant)",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.mjs",
+    "dev": "node --watch src/server.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "pg": "^8.13.1"
+  }
+}

@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-APP_NAME="HOHOSOLUTIONCRM Native.app"
+APP_NAME="Nebula Native.app"
 mkdir -p "$ROOT/artifacts"
 APP_OUT="$ROOT/artifacts/$APP_NAME"
 
@@ -23,6 +23,8 @@ fi
 echo "▸ App icon..."
 if [ -s "$ROOT/macos-native/AppIcon.icns" ] && [ "${HOHOH_FORCE_ICON:-0}" != "1" ]; then
   echo "▸ AppIcon.icns bestaat — overslaan (HOHOH_FORCE_ICON=1 om opnieuw te genereren)"
+elif [ -f "$ROOT/webapp/public/nebula-logo.png" ]; then
+  bash "$ROOT/tools/icns_from_png.sh" "$ROOT/webapp/public/nebula-logo.png" "$ROOT/macos-native/AppIcon.icns"
 else
   python3 "$ROOT/tools/generate_icon.py" "$ROOT/macos-native/AppIcon.icns"
 fi
@@ -78,12 +80,12 @@ required_files=(
   "$WEBROOT/index.html"
   "$WEBROOT/crm-app.js"
   "$WEBROOT/invoice-pdf.js"
-  "$WEBROOT/invoice-logo.png"
+  "$WEBROOT/nebula-logo.png"
 )
 for f in "${required_files[@]}"; do
   if [ ! -s "$f" ]; then
     echo "✗ Ontbreekt of leeg: $f"
-    echo "  Verwacht: webapp/dist bevat index.html + crm-app.js + invoice-pdf.js + invoice-logo.png."
+    echo "  Verwacht: webapp/dist bevat index.html + crm-app.js + invoice-pdf.js + nebula-logo.png."
     echo "  Tip: draai in webapp/: npm run build (moet dist/ vullen)."
     exit 1
   fi
@@ -103,8 +105,8 @@ fi
 
 TEST_OUT="$ROOT/artifacts/Te-testen"
 mkdir -p "$TEST_OUT"
-rm -rf "$TEST_OUT/HOHOSOLUTIONCRM.app"
-cp -R "$APP_OUT" "$TEST_OUT/HOHOSOLUTIONCRM.app"
+rm -rf "$TEST_OUT/Nebula.app"
+cp -R "$APP_OUT" "$TEST_OUT/Nebula.app"
 
 echo ""
 echo "✅ Terminé : $APP_OUT"

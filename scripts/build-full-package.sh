@@ -4,12 +4,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION="${1:-1.0.0}"
 DATE_TAG="$(date +%Y%m%d-%H%M)"
-REL_NAME="HohoCRM-FullPackage-v${VERSION}-${DATE_TAG}"
+REL_NAME="Nebula-FullPackage-v${VERSION}-${DATE_TAG}"
 REL_DIR="$ROOT/releases/$REL_NAME"
 
-APP_PKG="$ROOT/artifacts/HOHOSOLUTIONCRM-v1.0.0.pkg"
-APP_DMG="$ROOT/artifacts/HOHOSOLUTIONCRM-v1.0.0.dmg"
-NATIVE_APP="$ROOT/artifacts/HOHOSOLUTIONCRM Native.app"
+APP_PKG="$ROOT/artifacts/Nebula-v1.0.0.pkg"
+APP_DMG="$ROOT/artifacts/Nebula-v1.0.0.dmg"
+NATIVE_APP="$ROOT/artifacts/Nebula Native.app"
 WEB_DIST="$ROOT/webapp/dist"
 VITRINE_HTML="$ROOT/marketing/hohohsolutions-website.html"
 
@@ -78,30 +78,30 @@ fi
 # 5) Zip convenience bundles
 (
   cd "$REL_DIR"
-  ditto -c -k --sequesterRsrc --keepParent "native/HOHOSOLUTIONCRM Native.app" "installers/HOHOSOLUTIONCRM-Native.app.zip" || true
-  ditto -c -k --sequesterRsrc --keepParent "webapp" "webapp/HohoCRM-webapp-dist.zip" || true
+  ditto -c -k --sequesterRsrc --keepParent "native/Nebula Native.app" "installers/Nebula-Native.app.zip" || true
+  ditto -c -k --sequesterRsrc --keepParent "webapp" "webapp/Nebula-webapp-dist.zip" || true
 )
 
 # 6) Checksums
 (
   cd "$REL_DIR"
   shasum -a 256 installers/* > SHA256SUMS.txt 2>/dev/null || true
-  if [ -f "webapp/HohoCRM-webapp-dist.zip" ]; then
-    shasum -a 256 "webapp/HohoCRM-webapp-dist.zip" >> SHA256SUMS.txt
+  if [ -f "webapp/Nebula-webapp-dist.zip" ]; then
+    shasum -a 256 "webapp/Nebula-webapp-dist.zip" >> SHA256SUMS.txt
   fi
-  if [ -f "installers/HohoSolutions-CRM-Native.app.zip" ]; then
-    shasum -a 256 "installers/HohoSolutions-CRM-Native.app.zip" >> SHA256SUMS.txt
+  if [ -f "installers/Nebula-Native.app.zip" ]; then
+    shasum -a 256 "installers/Nebula-Native.app.zip" >> SHA256SUMS.txt
   fi
 )
 
 # 7) Customer readme
 cat > "$REL_DIR/README-CUSTOMER.txt" <<TXT
-HohoCRM - Full Package v${VERSION}
+Nebula - Full Package v${VERSION}
 
 Inhoud:
-- installers/HOHOSOLUTIONCRM-v1.0.0.pkg
-- installers/HOHOSOLUTIONCRM-v1.0.0.dmg
-- native/HOHOSOLUTIONCRM Native.app
+- installers/Nebula-v1.0.0.pkg
+- installers/Nebula-v1.0.0.dmg
+- native/Nebula Native.app
 - webapp/  (deploybare webbuild)
 - vitrine/ (vitrine website)
 - SHA256SUMS.txt
@@ -110,7 +110,7 @@ Aanbevolen distributie:
 1) Verkoopsite: host vitrine/hohohsolutions-website.html
 2) Productplatform: deploy webapp/ op Netlify
 3) Mac install: deel de .dmg of .pkg uit installers/ — dit installeert nu de echte Mac-app (eigen venster, geen Safari)
-4) Optioneel: installers/HohoSolutions-CRM-Native.app.zip (zelfde techniek als in de .pkg)
+4) Optioneel: installers/Nebula-Native.app.zip (zelfde techniek als in de .pkg)
 
 Belangrijk:
 - Vul Stripe links in de vitrine HTML voordat je verkoopt.

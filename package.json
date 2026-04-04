@@ -1,7 +1,12 @@
 {
-  "name": "hohoh-crm-netlify",
+  "name": "nebula-platform",
   "private": true,
-  "description": "Root deps for Netlify Functions (Gmail opvolgmail)",
+  "description": "Nebula by HohohSolutions — Netlify functions & monorepo root",
+  "scripts": {
+    "download-pkg": "bash scripts/download-nebula-pkg.sh",
+    "download-pkg:node": "node scripts/download-nebula-pkg.mjs",
+    "fill-manifest": "bash scripts/fill-release-manifest.sh"
+  },
   "dependencies": {
     "@netlify/blobs": "^10.7.4",
     "nodemailer": "^6.9.16"

@@ -58,7 +58,7 @@ export const handler = async (event) => {
 
   try {
     await transporter.sendMail({
-      from: `"HohohSolutions CRM" <${user}>`,
+      from: `"Nebula" <${user}>`,
       to,
       subject,
       text: text || '',

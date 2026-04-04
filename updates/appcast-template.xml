@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
   <channel>
-    <title>HohohSolutions CRM updates</title>
+    <title>Nebula updates</title>
     <link>https://jouw-domein-of-netlify.netlify.app/mac-updates/appcast.xml</link>
     <description>Mac-app updates</description>
     <language>nl</language>
@@ -14,7 +14,7 @@
       <sparkle:shortVersionString>1.0.1</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
       <enclosure
-        url="https://jouw-domein-of-netlify.netlify.app/mac-updates/HohoCRM-1.0.1.zip"
+        url="https://jouw-domein-of-netlify.netlify.app/mac-updates/Nebula-1.0.1.zip"
         sparkle:edSignature="VUL_IN_MET_sign_update"
         length="0"
         type="application/octet-stream" />

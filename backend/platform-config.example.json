@@ -1,0 +1,20 @@
+{
+  "releaseManifestPatch": {
+    "version": "1.0.0",
+    "pkg": {
+      "url": "https://cdn.example.com/nebula/Nebula-v1.0.0.pkg",
+      "sha256": ""
+    }
+  },
+  "featureFlags": {
+    "downloadsPage": true,
+    "nativeUpdates": true
+  },
+  "brandingDefaults": {
+    "companyName": "HohohSolutions",
+    "logoPath": "/nebula-logo.png"
+  },
+  "messages": {
+    "supportEmail": "sales@hohohsolutions.com"
+  }
+}

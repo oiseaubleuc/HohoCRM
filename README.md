@@ -1,51 +1,10 @@
-# HohohSolutions CRM — macOS builder + webapp
+# Nebula — by HohohSolutions
 
-Repository met een **volledige webapp** (Vite + vanilla JS) en scripts om een **macOS `.pkg`-installer** en/of **`.dmg`** te bouwen. Daarnaast: een **volledige native Mac-app** (Swift + WKWebView) in één venster.
+Monorepo voor **Nebula**: premium operations-platform (CRM, projecten, finance, agenda, AI-ready roadmap). Dit pakket bevat de **webapp** (Vite), **macOS native wrapper** (Swift + WKWebView), **marketing/vitrine**, **Netlify functions**, en een begin **backend/SaaS-fundament** (`backend/`).
 
----
+**Waar staat welke data?** (localStorage, Netlify Blobs, Postgres, platform-config) — zie **`DATA.md`**.
 
-## Projectstructuur
-
-```
-hohoh-pkg-builder/
-├── webapp/                    ← Broncode van de CRM-webapp
-├── macos-native/              ← Native Mac-app (SwiftUI + WebKit)
-├── scripts/                   ← Bouwscripts (logica)
-│   ├── build.sh
-│   ├── build-native-mac-app.sh
-│   ├── build-full-package.sh
-│   └── publish-mac-update.sh
-├── tools/
-│   └── generate_icon.py       ← Genereert AppIcon.icns
-├── marketing/
-│   └── hohohsolutions-website.html
-├── artifacts/                 ← .pkg, .dmg, test-.app (niet in git; wel .gitkeep)
-├── build/                     ← Tijdelijke installer-bestanden (niet in git)
-├── netlify/                   ← Serverless (o.a. opvolgmail)
-├── docs/
-├── updates/                   ← Sparkle-documentatie
-├── build.sh                   ← Wrapper → scripts/build.sh
-├── build-native-mac-app.sh
-├── build-full-package.sh
-├── publish-mac-update.sh
-├── build-easy.command
-└── payload/                   ← Oude launcher-template (referentie)
-```
-
-### Native Mac-app (aanbevolen als “echte” desktop-app)
-
-```bash
-chmod +x build-native-mac-app.sh
-./build-native-mac-app.sh
-```
-
-Levert **`artifacts/HohohSolutions CRM Native.app`** (en een kopie in **`artifacts/Te-testen/`** om te proberen): de CRM draait **in een macOS-venster** (WKWebView). Er wordt **geen** Safari/Chrome geopend. Een kleine ingebouwde HTTP-server draait alleen **binnen de app** (localhost) zodat `localStorage` betrouwbaar werkt.
-
-**Automatische updates (Sparkle):** ingebouwd. Stel `SUFeedURL` en `SUPublicEDKey` in `macos-native/Info.plist` in, host een `appcast.xml` + getekende zip op HTTPS, en gebruik `./publish-mac-update.sh <versie>`. Volledige stappen: [`updates/SPARKLE-UPDATES.md`](updates/SPARKLE-UPDATES.md).
-
-**Français :** même commande — application **macOS complète** avec interface intégrée (pas seulement un raccourci vers le navigateur).
-
-**Lokaal ontwikkelen:**
+## Snel starten (webapp)
 
 ```bash
 cd webapp
@@ -53,83 +12,60 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173 — hot reload tijdens bewerken.
+Open de dev-server-URL; productnaam in de UI: **Nebula** · **by HohohSolutions**.
 
----
-
-## Vereisten (macOS-build)
-
-- macOS **13.0** of nieuwer (native app)
-- **Node.js + npm** (https://nodejs.org) — voor `npm run build` in `webapp/`
-- Xcode Command Line Tools (`xcode-select --install`) — o.a. **Swift** voor de native app
-- **Python 3** — alleen nodig op de **bouwmachine** om `AppIcon.icns` te genereren (`tools/generate_icon.py`); de geïnstalleerde klant-app vereist geen Python
-
----
-
-## macOS-artefacten bouwen
+## macOS-app bouwen
 
 ```bash
-chmod +x build.sh
+./scripts/build-native-mac-app.sh
 ```
 
-| Commando | Resultaat |
-|----------|-----------|
-| `./build.sh` | `.pkg` in `artifacts/` (installeert naar `/Applications`) |
-| `./build.sh dmg` | `.dmg` in `artifacts/` (app slepen naar Programma’s) |
-| `./build.sh all` | beide |
+Levert onder andere `artifacts/Nebula Native.app` en `artifacts/Te-testen/Nebula.app`.
 
-Het script bouwt de webapp, daarna **`build-native-mac-app.sh`** (Swift), en plaatst het resultaat als **`/Applications/HohohSolutions CRM.app`** in de installer (zelfde UI als de webapp, maar **in een eigen venster**, niet in je standaardbrowser).
-
----
-
-## Full package (alles in 1)
-
-Gebruik dit als je een complete klantrelease wil:
+## Installer (.pkg / .dmg)
 
 ```bash
-chmod +x build-full-package.sh
-./build-full-package.sh
+./scripts/build.sh        # .pkg
+./scripts/build.sh dmg    # .dmg
 ```
 
-Output komt in `releases/HohoCRM-FullPackage-v.../` met:
-- `installers/` → `.pkg` + `.dmg`
-- `native/` → `HohohSolutions CRM Native.app`
-- `webapp/` → deploy-klare `dist`
-- `vitrine/` → vitrine website HTML
-- `SHA256SUMS.txt`
-- `README-CUSTOMER.txt`
+Output o.a. `artifacts/Nebula-v1.0.0.pkg` — installeert **`/Applications/Nebula.app`**. Oude installaties (`HOHOSOLUTIONCRM`, `HohohSolutions CRM`) worden bij installatie opgeruimd.
 
----
+## SaaS: PKG-downloader & release-manifest
 
-## Friendly use (zonder technische kennis)
+- **Manifest (bron van waarheid):** `webapp/public/releases/nebula-release-manifest.json` — vul na elke release de publieke `url`-velden (CDN / S3 / GitHub Releases) en zo mogelijk `sha256` + `bytes`.
+- **Checksums vullen (lokaal):** na `./scripts/build.sh all` en eventueel `build-full-package.sh`:  
+  `BASE_URL=https://cdn.jouwdomein.com/nebula/v1.0.0 npm run fill-manifest`  
+  (zonder `BASE_URL` worden alleen hash en grootte gezet; URLs vul je handmatig.)
+- **API:** met de backend actief: `GET http://localhost:4000/v1/releases/latest` —zelfde JSON als het manifest (handig voor portals en scripts).
+- **Download-CLI (macOS, vereist `jq`):**  
+  `NEBULA_API_BASE=http://127.0.0.1:4000 ./scripts/download-nebula-pkg.sh`  
+  of direct: `NEBULA_MANIFEST_URL=https://…/nebula-release-manifest.json ./scripts/download-nebula-pkg.sh -t dmg`  
+  Opties: `-i` opent installer na download, `-n` slaat hash-check over.
+- **Node-CLI:** `npm run download-pkg:node -- --file webapp/public/releases/nebula-release-manifest.json -t pkg`
+- **Downloadpagina (statisch):** na `webapp` build: `/downloads/` — toont knoppen op basis van het manifest (Netlify-rewrite staat in `netlify.toml`).
 
-1. Dubbelklik op `build-easy.command`
-2. Kies een nummer in het menu:
-   - `1` webapp
-   - `2` Mac installer
-   - `3` Native Mac app
-   - `4` Volledig pakket
+Zie **`SECURITY.md`** voor HTTPS, CORS, rate limits, `INTERNAL_API_KEY`, installers (checksums / signing) en roadmap (JWT, CSP, …).
 
-Voor klantenlevering kies je meestal `4`.
+**Centraal beheer (SaaS):** met `INTERNAL_API_KEY` kun je via `PUT /v1/admin/platform-config` o.a. `releaseManifestPatch`, `featureFlags`, `brandingDefaults` en `messages` bijwerken — zonder nieuwe webbuild. Clients lezen publieke defaults via `GET /v1/public/settings`. Zie `backend/README.md`.
 
----
+## SaaS-backend (fundament)
 
-## Eindgebruiker (geïnstalleerde app)
+Zie **`backend/README.md`** en **`backend/sql/001_core.sql`**: PostgreSQL-schema voor tenants, users, memberships — startpunt voor echte multi-tenant API (auth, Stripe, AI volgen in aparte iteraties).
 
-- Dubbelklik op **HohohSolutions CRM**: je krijgt **een normaal macOS-venster** met de CRM (WebKit). Er wordt **geen** apart browservenster geopend.
-- Technisch draait er nog steeds een **mini HTTP-server op localhost** *binnen de app* — dat is normaal en lokaal; het is geen “website op het internet”.
+## Belangrijke mappen
 
----
+| Map | Inhoud |
+|-----|--------|
+| `webapp/` | Product-UI (Nebula) |
+| `macos-native/` | Swift-wrapper |
+| `marketing/` | Landingspagina (`hohohsolutions-website.html`) |
+| `netlify/functions/` | o.a. opvolgmail |
+| `backend/` | API-skelet + SQL-schema |
+| `updates/` | Sparkle appcast-sjabloon |
 
-## Code signing (optioneel)
+## Licentie / merk
 
-```bash
-productsign \
-  --sign "Developer ID Installer: JOUW NAAM (TEAMID)" \
-  artifacts/HohohSolutions-CRM-v1.0.0.pkg \
-  artifacts/HohohSolutions-CRM-v1.0.0-signed.pkg
-```
+Product: **Nebula**. Bedrijf: **HohohSolutions**. Zie installatie-license in `scripts/build.sh` resources.
 
----
-
-© 2026 HohohSolutions — Alle rechten voorbehouden
+© 2026 HohohSolutions — Alle rechten voorbehouden.

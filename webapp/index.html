@@ -2,11 +2,29 @@
 <html lang="nl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#0e0e10">
-<title>HohohSolutions CRM</title>
+<meta id="apple-status-style" name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta id="theme-color-meta" name="theme-color" content="#06060a">
+<meta name="application-name" content="Nebula">
+<meta name="description" content="Nebula by HohohSolutions — intelligence for modern operations. CRM, projecten, finance en automatisatie.">
+<script>
+(function () {
+  try {
+    var v = localStorage.getItem('nebula-theme') || localStorage.getItem('hohoh-theme');
+    var light = v === 'light' || (v !== 'dark' && window.matchMedia('(prefers-color-scheme: light)').matches);
+    var h = document.documentElement;
+    if (light) h.setAttribute('data-theme', 'light');
+    else h.removeAttribute('data-theme');
+    var meta = document.getElementById('theme-color-meta');
+    if (meta) meta.setAttribute('content', light ? '#f4f4f8' : '#06060a');
+    var st = document.getElementById('apple-status-style');
+    if (st) st.setAttribute('content', light ? 'default' : 'black-translucent');
+  } catch (e) {}
+})();
+</script>
+<title>Nebula — Command center for your business</title>
+<link rel="icon" href="/nebula-logo.png" type="image/png">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -17,83 +35,91 @@
 <nav class="sidebar" id="sidebar">
   <div class="logo">
     <div class="logo-wordmark">
-      <span class="logo-hohoh">Hohoh</span><span class="logo-solutions">Solutions</span>
+      <img class="logo-mark" src="/nebula-logo.png" width="36" height="36" alt="" decoding="async" fetchpriority="high">
+      <span class="logo-nebula-name">Nebula</span>
     </div>
-    <div class="logo-crm-pill">CRM Platform</div>
+    <div class="logo-by-hohoh">by HohohSolutions</div>
+    <div class="logo-tagline-pill">Intelligence for modern operations</div>
   </div>
   <div class="nav">
     <div class="nav-label">Overzicht</div>
-    <button class="nav-item active" onclick="showPage('dashboard')">
+    <button type="button" class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       Dashboard
     </button>
 
     <div class="nav-label">Beheer</div>
-    <button class="nav-item" onclick="showPage('klanten')">
+    <button type="button" class="nav-item" data-page="klanten" onclick="showPage('klanten')">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       Klanten
       <span class="nav-badge" id="badge-klanten">0</span>
     </button>
-    <button class="nav-item" onclick="showPage('projecten')">
+    <button type="button" class="nav-item" data-page="projecten" onclick="showPage('projecten')">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
       Projecten
       <span class="nav-badge" id="badge-projecten">0</span>
     </button>
-    <button class="nav-item" onclick="showPage('taken')">
+    <button type="button" class="nav-item" data-page="taken" onclick="showPage('taken')">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
       Taken
       <span class="nav-badge" id="badge-taken">0</span>
     </button>
-    <button class="nav-item" onclick="showPage('todo')">
+    <button type="button" class="nav-item" data-page="todo" onclick="showPage('todo')">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
       To-Do Lijsten
       <span class="nav-badge" id="badge-todo">0</span>
     </button>
-    <button class="nav-item" onclick="showPage('meetings')">
+    <button type="button" class="nav-item" data-page="meetings" onclick="showPage('meetings')">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       Meeting Notities
       <span class="nav-badge" id="badge-meetings">0</span>
     </button>
 
     <div class="nav-label">Financieel</div>
-    <button class="nav-item" onclick="showPage('facturen')">
+    <button type="button" class="nav-item" data-page="facturen" onclick="showPage('facturen')">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
       Facturen
     </button>
-    <button class="nav-item" onclick="showPage('financieel')">
+    <button type="button" class="nav-item" data-page="financieel" onclick="showPage('financieel')">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
       Financieel overzicht
     </button>
 
     <div class="nav-label">Planning</div>
-    <button class="nav-item" onclick="showPage('tijdlijn')">
+    <button type="button" class="nav-item" data-page="tijdlijn" onclick="showPage('tijdlijn')">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><path d="M7 12h10"/><path d="M5 18h8"/></svg>
       Tijdlijn
     </button>
-    <button class="nav-item" onclick="showPage('roadmap')">
+    <button type="button" class="nav-item" data-page="roadmap" onclick="showPage('roadmap')">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>
       Roadmap
     </button>
 
     <div class="nav-label">Technisch</div>
-    <button class="nav-item" onclick="showPage('apilog')">
+    <button type="button" class="nav-item" data-page="apilog" onclick="showPage('apilog')">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
       API & Tools
     </button>
 
     <div class="nav-label">Agenda</div>
-    <button class="nav-item" onclick="showPage('agenda')">
+    <button type="button" class="nav-item" data-page="agenda" onclick="showPage('agenda')">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       Agenda & Afspraken
     </button>
 
+    <div class="nav-label">Zaak</div>
+    <button type="button" class="nav-item" data-page="onderneming" onclick="showPage('onderneming')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Mijn bedrijf
+    </button>
+
     <div style="flex:1"></div>
     <div class="nav-label">Data</div>
-    <button class="nav-item" onclick="exportData()">
+    <button type="button" class="nav-item" onclick="exportData()">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       Exporteer JSON
     </button>
-    <button class="nav-item" onclick="importClick()">
+    <button type="button" class="nav-item" onclick="importClick()">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       Importeer
     </button>
@@ -104,15 +130,22 @@
 <!-- MAIN -->
 <div class="main">
   <div class="topbar">
-    <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">
+    <button type="button" class="hamburger" onclick="toggleSidebar()" aria-label="Menu">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
       </svg>
     </button>
     <div class="page-title" id="topbar-title">Dashboard</div>
-    <div class="topbar-actions">
-      <input class="search-box" type="text" placeholder="Zoeken..." oninput="globalSearch(this.value)" id="global-search">
-      <button class="btn btn-primary" id="add-btn" onclick="openAddModal()">+ Toevoegen</button>
+    <div class="topbar-actions" id="topbar-actions">
+      <button type="button" class="theme-toggle" id="theme-toggle" title="Licht of donker thema" aria-label="Schakel tussen licht en donker thema">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </button>
+      <button type="button" class="search-toggle" id="search-toggle" onclick="toggleMobileSearch()" title="Zoeken" aria-label="Zoeken openen of sluiten" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      </button>
+      <input class="search-box" type="search" placeholder="Zoeken..." enterkeyhint="search" oninput="globalSearch(this.value)" id="global-search" autocomplete="off">
+      <button type="button" class="btn btn-primary" id="add-btn" onclick="openAddModal()">+ Toevoegen</button>
     </div>
   </div>
 
@@ -138,6 +171,21 @@
         <div class="stat-label">Openstaand</div>
         <div class="stat-value" id="stat-facturen">€0</div>
         <div class="stat-sub">onbetaalde facturen</div>
+      </div>
+    </div>
+
+    <div class="ondernemer-hub">
+      <div class="ondernemer-hub-inner">
+        <div>
+          <div class="ondernemer-hub-title">Jouw zaak onder controle</div>
+          <div class="ondernemer-hub-sub">Factuurkop, backup en overzicht — alles op één plek</div>
+        </div>
+        <div class="ondernemer-hub-actions">
+          <button type="button" class="btn btn-primary" onclick="showPage('onderneming')">Mijn bedrijf</button>
+          <button type="button" class="btn btn-ghost" onclick="exportData()">JSON backup</button>
+          <button type="button" class="btn btn-ghost" onclick="showPage('financieel')">Financieel</button>
+          <button type="button" class="btn btn-ghost" onclick="showPage('facturen')">Facturen</button>
+        </div>
       </div>
     </div>
 
@@ -549,6 +597,48 @@
     </div>
   </div>
 
+  <!-- MIJN BEDRIJF (facturatie-branding) -->
+  <div class="page" id="page-onderneming">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Mijn bedrijf</div>
+        <div class="section-sub">Gegevens op PDF-facturen en in communicatie — lokaal opgeslagen in deze browser</div>
+      </div>
+    </div>
+    <div class="table-wrap" style="padding:20px 22px;max-width:720px">
+      <p style="font-size:13px;color:var(--text2);line-height:1.55;margin:0 0 18px">Vul dit in voordat je facturen exporteert. Deze velden overschrijven de standaardwaarden in het facturatiesjabloon.</p>
+      <div class="form-row">
+        <div class="form-group full"><label>Bedrijfsnaam</label><input id="br-companyName" type="text" placeholder="Jouw BV / eenmanszaak" autocomplete="organization"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group full"><label>Adres (één regel)</label><input id="br-addressLine" type="text" placeholder="Straat nr, postcode stad, land" autocomplete="street-address"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>BTW-nummer</label><input id="br-vat" type="text" placeholder="BE0…" autocomplete="off"></div>
+        <div class="form-group"><label>Rekeninghouder</label><input id="br-accountHolder" type="text" autocomplete="name"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>IBAN</label><input id="br-iban" type="text" placeholder="BE00 0000 0000 0000" autocomplete="off"></div>
+        <div class="form-group"><label>IBAN compact (optioneel)</label><input id="br-ibanCompact" type="text" placeholder="Auto van IBAN als leeg" autocomplete="off"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>E-mail</label><input id="br-email" type="email" autocomplete="email"></div>
+        <div class="form-group"><label>Telefoon</label><input id="br-phone" type="tel" autocomplete="tel"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group full"><label>Logo-pad of URL</label><input id="br-logoPath" type="text" placeholder="/nebula-logo.png of https://…" autocomplete="off"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group full"><label>Juridische voetnoot (o.a. BTW-vrijstelling)</label><textarea id="br-legalNote0Btw" rows="3" placeholder="Bijzondere vrijstellingsregeling…"></textarea></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;align-items:center">
+        <button type="button" class="btn btn-primary" onclick="saveBranding()">Opslaan</button>
+        <button type="button" class="btn btn-ghost" onclick="loadBrandingForm();toast('Velden vernieuwd')">Herladen</button>
+        <span style="font-size:12px;color:var(--text3)">Tip: regelmatig <strong>Exporteer JSON</strong> in het menu voor een volledige back-up.</span>
+      </div>
+    </div>
+  </div>
+
   <!-- AGENDA -->
   <div class="page" id="page-agenda">
     <div class="section-head">
@@ -586,23 +676,23 @@
 <!-- BOTTOM NAV (mobiel) -->
 <nav class="bottom-nav" id="bottom-nav">
   <div class="bottom-nav-inner">
-    <button class="bottom-nav-item active" onclick="showPage('dashboard');setBottomNav(this)" data-page="dashboard">
+    <button type="button" class="bottom-nav-item active" onclick="showPage('dashboard')" data-page="dashboard">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       Home
     </button>
-    <button class="bottom-nav-item" onclick="showPage('klanten');setBottomNav(this)" data-page="klanten">
+    <button type="button" class="bottom-nav-item" onclick="showPage('klanten')" data-page="klanten">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
       Klanten
     </button>
-    <button class="bottom-nav-item" onclick="showPage('projecten');setBottomNav(this)" data-page="projecten">
+    <button type="button" class="bottom-nav-item" onclick="showPage('projecten')" data-page="projecten">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
       Projecten
     </button>
-    <button class="bottom-nav-item" onclick="showPage('todo');setBottomNav(this)" data-page="todo">
+    <button type="button" class="bottom-nav-item" onclick="showPage('todo')" data-page="todo">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
       To-Do
     </button>
-    <button class="bottom-nav-item" onclick="toggleSidebar()" id="bottom-more-btn">
+    <button type="button" class="bottom-nav-item" onclick="toggleSidebar()" id="bottom-more-btn">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
       Meer
     </button>
@@ -828,7 +918,7 @@
       <div class="form-row">
         <div class="form-group">
           <label>GitHub repo (owner/repo of URL)</label>
-          <input id="p-github" placeholder="oiseaubleuc/HohoCRM of https://github.com/oiseaubleuc/HohoCRM">
+          <input id="p-github" placeholder="org/repo of https://github.com/org/repo">
         </div>
         <div class="form-group" style="display:flex;align-items:flex-end">
           <button class="btn btn-ghost" type="button" style="width:100%" onclick="suggestProjectFromGithub()">⚡ Slim invullen via GitHub</button>

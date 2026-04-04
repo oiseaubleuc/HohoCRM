@@ -6,7 +6,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VER="${1:?Gebruik: ./publish-mac-update.sh 1.0.1}"
 shift
 
-APP_SRC="$ROOT/artifacts/Te-testen/HOHOSOLUTIONCRM.app"
+APP_SRC="$ROOT/artifacts/Te-testen/Nebula.app"
 if [ ! -d "$APP_SRC" ]; then
   echo "✗ $APP_SRC ontbreekt. Draai eerst: ./build-native-mac-app.sh"
   exit 1
@@ -14,7 +14,7 @@ fi
 
 OUT_DIR="$ROOT/updates/dist"
 mkdir -p "$OUT_DIR"
-ZIP="$OUT_DIR/HohoCRM-${VER}.zip"
+ZIP="$OUT_DIR/Nebula-${VER}.zip"
 rm -f "$ZIP"
 
 echo "▸ Zip maken: $ZIP"

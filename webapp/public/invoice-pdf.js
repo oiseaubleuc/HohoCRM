@@ -1,10 +1,10 @@
 /**
- * PDF-factuur (A4) — HohoSolutions layout, EPC-QR voor banking apps.
- * Branding: defaultwaarden hieronder; overschrijf via localStorage key hohoh_invoice_branding (JSON).
+ * PDF-factuur (A4) — Nebula layout, EPC-QR voor banking apps.
+ * Branding: overschrijf via localStorage `nebula_invoice_branding` (JSON); legacy `hohoh_invoice_branding` wordt nog gelezen.
  */
 (function () {
   const DEFAULT_BRANDING = {
-    companyName: 'HohoSolutions',
+    companyName: 'HohohSolutions',
     addressLine: 'Koloniënstraat 11, 1000 Brussel, België',
     vat: 'BE1031192548',
     accountHolder: 'Houdaifa Hamouchi',
@@ -14,12 +14,14 @@
     phone: '+32451015476',
     legalNote0Btw: 'Bijzondere vrijstellingsregeling kleine ondernemingen - btw niet van toepassing.',
     /** Pad relatief aan webroot (Vite public → dist root), of volledige URL / data-URL */
-    logoPath: '/invoice-logo.png',
+    logoPath: '/nebula-logo.png',
   };
 
   function getBranding() {
     try {
-      const raw = localStorage.getItem('hohoh_invoice_branding');
+      const raw =
+        localStorage.getItem('nebula_invoice_branding') ||
+        localStorage.getItem('hohoh_invoice_branding');
       if (raw) return { ...DEFAULT_BRANDING, ...JSON.parse(raw) };
     } catch (e) { /* ignore */ }
     return { ...DEFAULT_BRANDING };
@@ -57,7 +59,8 @@
   }
 
   function invoiceLogoSrc(b) {
-    const p = (b && b.logoPath != null) ? String(b.logoPath).trim() : '/invoice-logo.png';
+    let p = (b && b.logoPath != null) ? String(b.logoPath).trim() : '/nebula-logo.png';
+    if (p === '/invoice-logo.png') p = '/nebula-logo.png';
     if (!p) return logoDataUriFallback();
     if (p.startsWith('data:') || /^https?:\/\//i.test(p)) return p;
     return p;
@@ -65,11 +68,16 @@
 
   /** Fallback als geen logoPath / bestand ontbreekt */
   function logoDataUriFallback() {
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" width="72" height="72">
-      <rect width="72" height="72" fill="#0d0d0d"/>
-      <ellipse cx="36" cy="42" rx="24" ry="11" fill="none" stroke="#fff" stroke-width="1.8" transform="rotate(-14 36 42)"/>
-      <path fill="#fff" d="M36 14c0 0 10 18 10 26 0 2-1 4-3 4h-6v8l-5-7-5 7v-8h-6c-2 0-3-2-3-4 0-8 10-26 10-26s2 10 8 10 8-10 8-10z"/>
-      <path fill="#fff" opacity=".9" d="M33 48l3 10 3-10h-6z"/>
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+      <defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#06060a"/><stop offset="100%" stop-color="#101a28"/></linearGradient>
+      <radialGradient id="f" cx="35%" cy="75%" r="55%"><stop offset="0%" stop-color="#5eb5ff" stop-opacity="0.5"/><stop offset="100%" stop-opacity="0"/></radialGradient>
+      <linearGradient id="p" x1="30%" y1="20%" x2="70%" y2="100%"><stop offset="0%" stop-color="#7dd3fc"/><stop offset="100%" stop-color="#3b82f6"/></linearGradient></defs>
+      <rect width="64" height="64" rx="15" fill="url(#g)"/>
+      <ellipse cx="20" cy="50" rx="26" ry="18" fill="url(#f)"/>
+      <ellipse cx="52" cy="16" rx="20" ry="14" fill="#9b7cff" opacity="0.28"/>
+      <circle cx="11" cy="12" r="1.3" fill="#e8eaf4"/><circle cx="54" cy="28" r="1" fill="#e8eaf4"/>
+      <path d="M18 40 A20 20 0 0 1 46 40" stroke="#9b7cff" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <circle cx="32" cy="40" r="8" fill="url(#p)"/>
     </svg>`;
     return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
   }
@@ -84,7 +92,7 @@
   }
 
   window.downloadFactuurPdf = function downloadFactuurPdf(factuurId) {
-    const db = window.__HOHOH_DB__;
+    const db = window.__NEBULA_DB__ || window.__HOHOH_DB__;
     if (!db || !db.facturen) {
       if (typeof toast === 'function') toast('❌ Geen factuurgegevens');
       return;

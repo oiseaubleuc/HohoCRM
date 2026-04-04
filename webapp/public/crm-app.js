@@ -133,8 +133,8 @@ function ensureLoginScreen() {
   el.id = 'admin-login-screen';
   el.innerHTML = `
     <div class="admin-login-card">
-      <h1 class="admin-login-title">HohohSolutions CRM</h1>
-      <p class="admin-login-sub">Log in als admin om verder te gaan.</p>
+      <h1 class="admin-login-title">Nebula</h1>
+      <p class="admin-login-sub">by HohohSolutions — log in als admin om verder te gaan.</p>
       <label class="admin-login-label" for="admin-login-user">Gebruiker</label>
       <input id="admin-login-user" class="admin-login-input" value="${ADMIN_USERNAME}" autocomplete="username" />
       <label class="admin-login-label" for="admin-login-pass">Wachtwoord</label>
@@ -214,7 +214,10 @@ function save() {
 }
 
 function syncInvoiceDbRef() {
-  if (typeof window !== 'undefined') window.__HOHOH_DB__ = db;
+  if (typeof window !== 'undefined') {
+    window.__NEBULA_DB__ = db;
+    window.__HOHOH_DB__ = db;
+  }
 }
 
 function load() {
@@ -236,23 +239,115 @@ function fmt(d) {
 }
 
 // ─── NAVIGATION ──────────────────────────────────────────────────────────────
+const PAGE_TITLES = {
+  dashboard: 'Dashboard',
+  klanten: 'Klanten',
+  projecten: 'Projecten',
+  taken: 'Taken',
+  facturen: 'Facturen',
+  financieel: 'Financieel overzicht',
+  apilog: 'API & Tools',
+  tijdlijn: 'Tijdlijn',
+  roadmap: 'Roadmap',
+  agenda: 'Agenda & Afspraken',
+  todo: 'To-Do Lijsten',
+  meetings: 'Meeting Notities',
+  onderneming: 'Mijn bedrijf',
+};
+
+function syncBottomNav(pageName) {
+  const tabs = ['dashboard', 'klanten', 'projecten', 'todo'];
+  const match = tabs.includes(pageName);
+  document.querySelectorAll('.bottom-nav-item[data-page]').forEach((btn) => {
+    const p = btn.getAttribute('data-page');
+    btn.classList.toggle('active', match && p === pageName);
+  });
+}
+
+function updateTopbarForPage() {
+  const wrap = document.getElementById('topbar-actions');
+  if (wrap) wrap.classList.remove('search-open');
+  const st = document.getElementById('search-toggle');
+  if (st) st.setAttribute('aria-expanded', 'false');
+}
+
+function updateAddButtonVisibility() {
+  const addBtn = document.getElementById('add-btn');
+  if (addBtn) addBtn.style.display = currentPage === 'onderneming' ? 'none' : '';
+}
+
 function showPage(name) {
   closeSidebar();
+  const pageEl = document.getElementById('page-' + name);
+  if (!pageEl) {
+    toast(`❌ Pagina niet gevonden: ${name}`);
+    return;
+  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-  document.getElementById('page-' + name).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(b => {
-    if (b.textContent.toLowerCase().includes(name.slice(0,4))) b.classList.add('active');
+  pageEl.classList.add('active');
+  document.querySelectorAll('.nav-item[data-page]').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-page') === name);
   });
   currentPage = name;
-  document.getElementById('topbar-title').textContent = {
-    dashboard: 'Dashboard', klanten: 'Klanten', projecten: 'Projecten',
-    taken: 'Taken', facturen: 'Facturen', financieel: 'Financieel overzicht', apilog: 'API & Tools',
-    tijdlijn: 'Tijdlijn', roadmap: 'Roadmap', agenda: 'Agenda & Afspraken',
-    todo: 'To-Do Lijsten', meetings: 'Meeting Notities'
-  }[name] || name;
+  const titleEl = document.getElementById('topbar-title');
+  if (titleEl) titleEl.textContent = PAGE_TITLES[name] || name;
+  if (name === 'onderneming') loadBrandingForm();
+  updateTopbarForPage();
+  syncBottomNav(name);
   render();
   closeDetail();
+}
+
+function toggleMobileSearch() {
+  const wrap = document.getElementById('topbar-actions');
+  const btn = document.getElementById('search-toggle');
+  const input = document.getElementById('global-search');
+  if (!wrap || !btn) return;
+  const open = wrap.classList.toggle('search-open');
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  if (open && input) {
+    setTimeout(() => input.focus(), 50);
+  }
+}
+
+const BRANDING_KEYS = ['companyName', 'addressLine', 'vat', 'accountHolder', 'iban', 'ibanCompact', 'email', 'phone', 'logoPath', 'legalNote0Btw'];
+
+function loadBrandingForm() {
+  let stored = {};
+  try {
+    stored = JSON.parse(
+      localStorage.getItem('nebula_invoice_branding') ||
+      localStorage.getItem('hohoh_invoice_branding') ||
+      '{}'
+    );
+  } catch { /* ignore */ }
+  BRANDING_KEYS.forEach((key) => {
+    const el = document.getElementById('br-' + key);
+    if (el) el.value = stored[key] != null ? String(stored[key]) : '';
+  });
+}
+
+function saveBranding() {
+  if (!requireAdmin()) return;
+  const obj = {};
+  BRANDING_KEYS.forEach((key) => {
+    const el = document.getElementById('br-' + key);
+    if (el) obj[key] = el.value.trim();
+  });
+  if (!obj.ibanCompact && obj.iban) obj.ibanCompact = obj.iban.replace(/\s/g, '');
+  try {
+    const prev = JSON.parse(
+      localStorage.getItem('nebula_invoice_branding') ||
+      localStorage.getItem('hohoh_invoice_branding') ||
+      '{}'
+    );
+    const merged = { ...prev, ...obj };
+    localStorage.setItem('nebula_invoice_branding', JSON.stringify(merged));
+    try { localStorage.setItem('hohoh_invoice_branding', JSON.stringify(merged)); } catch { /* ignore */ }
+    toast('✓ Bedrijfs- en factuurgegevens opgeslagen (PDF-facturen)');
+  } catch {
+    toast('❌ Opslaan mislukt');
+  }
 }
 
 // ─── OPEN MODAL ──────────────────────────────────────────────────────────────
@@ -593,6 +688,8 @@ function render() {
   }
   if (currentPage === 'financieel') renderFinancieel();
   runAutomaticFollowupEngine();
+  updateAddButtonVisibility();
+  syncBottomNav(currentPage);
 }
 
 function updateBadges() {
@@ -1195,8 +1292,8 @@ function escHtml(s) {
 }
 
 function getFollowupMailConfig() {
-  const url = (localStorage.getItem('hohoh_followup_url') || (typeof window !== 'undefined' && window.__HOHOH_FOLLOWUP_URL__) || '').trim();
-  const secret = (localStorage.getItem('hohoh_followup_secret') || (typeof window !== 'undefined' && window.__HOHOH_FOLLOWUP_SECRET__) || '').trim();
+  const url = (localStorage.getItem('hohoh_followup_url') || (typeof window !== 'undefined' && (window.__NEBULA_FOLLOWUP_URL__ || window.__HOHOH_FOLLOWUP_URL__)) || '').trim();
+  const secret = (localStorage.getItem('hohoh_followup_secret') || (typeof window !== 'undefined' && (window.__NEBULA_FOLLOWUP_SECRET__ || window.__HOHOH_FOLLOWUP_SECRET__)) || '').trim();
   return { url, secret };
 }
 
@@ -2363,11 +2460,18 @@ function exportData() {
     password: (() => { try { return localStorage.getItem(ADMIN_PASSWORD_KEY); } catch { return null; } })(),
     createdAt: (() => { try { return localStorage.getItem('hohoh_admin_created_at'); } catch { return null; } })(),
   };
-  const payload = { version: 1, db, hohohAdmin };
+  const payload = {
+    version: 1,
+    product: 'Nebula',
+    vendor: 'HohohSolutions',
+    exportedAt: new Date().toISOString(),
+    db,
+    hohohAdmin,
+  };
   const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'mijncrm-backup-' + today() + '.json';
+  a.download = 'nebula-export-' + today() + '.json';
   a.click();
   toast('✓ Export gedownload');
 }
@@ -3443,11 +3547,6 @@ function closeSidebar() {
   document.getElementById('sidebar-overlay')?.classList.remove('open');
 }
 
-function setBottomNav(btn) {
-  document.querySelectorAll('.bottom-nav-item').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-}
-
 function populateAfSelects() {
   const afk = document.getElementById('af-klant');
   const afp = document.getElementById('af-project');
@@ -3614,7 +3713,7 @@ function installClickSafetyGuards() {
     'openFinKeuzeModal','finKiesUitgave','finKiesInkomen','saveFinUitgave','saveFinInkomen',
     'delFinUitgave','delFinInkomen','openFinUitgaveModal','openFinInkomenModal','setFinJaar','updateFinUitgaveCategoryHint','showFinTab',
     'openProjectArch','openProjectDetail','editProject','editKlant','switchArchTab','saveProjectNotes',
-    'saveFollowupMailSettings','downloadFactuurPdf'
+    'saveFollowupMailSettings','downloadFactuurPdf','toggleMobileSearch','saveBranding'
   ];
   names.forEach((name) => {
     const fn = window[name];

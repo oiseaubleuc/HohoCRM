@@ -3,6 +3,33 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+/**
+ * Vite's public-middleware matcht alleen exacte paden (…/index.html).
+ * Paden met trailing slash vallen anders door naar de SPA (verkeerde index.html).
+ */
+function publicHtmlIndexRewrite() {
+  const map = {
+    '/vitrine': '/vitrine/index.html',
+    '/vitrine/': '/vitrine/index.html',
+    '/downloads': '/downloads/index.html',
+    '/downloads/': '/downloads/index.html',
+  };
+  return {
+    name: 'public-html-index-rewrite',
+    enforce: 'pre',
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        const raw = req.url ?? '';
+        const q = raw.includes('?') ? '?' + raw.split('?').slice(1).join('?') : '';
+        const pathOnly = raw.split('?')[0] ?? '';
+        const target = map[pathOnly];
+        if (target) req.url = target + q;
+        next();
+      });
+    },
+  };
+}
+
 /** Vervangt __CRM_APP_HASH__ in index.html zodat browsers geen oude crm-app.js cachen. */
 function crmAppCacheBust() {
   let root = process.cwd();
@@ -27,7 +54,7 @@ function crmAppCacheBust() {
 export default defineConfig({
   root: '.',
   publicDir: 'public',
-  plugins: [crmAppCacheBust()],
+  plugins: [publicHtmlIndexRewrite(), crmAppCacheBust()],
   build: {
     outDir: 'dist',
     assetsDir: 'assets',

@@ -1,6 +1,6 @@
-# Automatische updates (Sparkle) — HohohSolutions CRM Mac-app
+# Automatische updates (Sparkle) — Nebula (macOS)
 
-De native app gebruikt **[Sparkle 2](https://sparkle-project.org/)**: op de achtergrond wordt je **appcast** (XML op **HTTPS**) geraadpleegd. Als er een nieuw zip-bestand staat met geldige handtekening, kan de gebruiker installeren vanuit de app (**HohohSolutions CRM → Controleren op updates…** of `⇧⌘U`).
+De native app **Nebula** by HohohSolutions gebruikt **[Sparkle 2](https://sparkle-project.org/)**: op de achtergrond wordt je **appcast** (XML op **HTTPS**) geraadpleegd. Als er een nieuw zip-bestand staat met geldige handtekening, kan de gebruiker installeren vanuit de app (**Nebula → Controleren op updates…** of `⇧⌘U`).
 
 ## Eigen gebruik — jij maakt vaak updates
 
@@ -62,7 +62,7 @@ Host het bestand statisch (Netlify, GitHub Pages, S3, …). **Geen** `http://` i
 
    Het script toont **edSignature** en **length** voor het `<enclosure>`-element.
 
-5. Upload `HohoCRM-1.0.1.zip` en de bijgewerkte `appcast.xml` naar dezelfde basis-URL als in `SUFeedURL`.
+5. Upload `Nebula-1.0.1.zip` en de bijgewerkte `appcast.xml` naar dezelfde basis-URL als in `SUFeedURL`.
 
 ## 4. Notarisatie (optioneel, sterk aanbevolen voor klanten)
 

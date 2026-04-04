@@ -1,30 +1,30 @@
-# Application macOS native (Swift + WKWebView)
+# Nebula — macOS native wrapper
 
-Fenêtre **macOS authentique** : la CRM s’affiche dans un `WKWebView` intégré (pas de Safari/Chrome séparé).
+Fenêtre **macOS native** : l’application **Nebula** (by HohohSolutions) s’affiche dans un `WKWebView` intégré (pas de Safari/Chrome séparé). Un petit serveur HTTP local sert le contenu de `webapp/dist/` embarqué dans le bundle.
 
 ## Prérequis
 
 - macOS 13+
-- **Xcode** ou **Command Line Tools** (`swift`, `swift build`)
-- **Node.js** (pour la webapp)
-- **Python 3** sur la machine cible (même mécanisme `http.server` sur `127.0.0.1` que le launcher shell — nécessaire pour `localStorage`)
+- Xcode Command Line Tools (`swift`, `python3`)
+- Dépendance Swift : **Sparkle** (téléchargée par SwiftPM sauf si `HOHOH_NO_SPARKLE=1`)
 
-## Build depuis la racine du dépôt
+## Build
 
-```bash
-chmod +x build-native-mac-app.sh
-./build-native-mac-app.sh
-```
-
-Résultat : **`../artifacts/HohohSolutions CRM Native.app`** (webapp `dist/` copiée dans `Contents/Resources/webroot/`). Lance `./build-native-mac-app.sh` depuis la racine du dépôt.
-
-## Code source
-
-- `Sources/HohohSolutionsCRMNative/` — SwiftUI + serveur Python embarqué + WebKit
-- `Info.plist` — copié dans le bundle `.app`
-
-Pour compiler seulement le binaire :
+Depuis la racine du dépôt :
 
 ```bash
-cd macos-native && swift build -c release
+./scripts/build-native-mac-app.sh
 ```
+
+Résultat : **`../artifacts/Nebula Native.app`** (webapp `dist/` copiée dans `Contents/Resources/webroot/`).
+
+Copie de test : **`artifacts/Te-testen/Nebula.app`**.
+
+## Structure
+
+- `Sources/HohohSolutionsCRMNative/` — SwiftPM target (nom technique historique) : SwiftUI + Python HTTP + WebKit
+- `Info.plist` — `CFBundleDisplayName` : **Nebula**
+
+## Mises à jour (Sparkle)
+
+Voir `../updates/SPARKLE-UPDATES.md`.

@@ -1,5 +1,9 @@
 node_modules/
+backend/node_modules/
 webapp/node_modules/
+backend/.env
+backend/data/*.json
+!backend/data/.gitkeep
 webapp/dist/
 webapp/.env
 macos-native/.build/
@@ -11,3 +15,4 @@ updates/dist/
 updates/*private*
 updates/*.pem
 .DS_Store
+tools/.iconset_build/

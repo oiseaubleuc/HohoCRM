@@ -7,7 +7,7 @@ struct ContentView: View {
         Group {
             if let err = server.errorMessage {
                 VStack(spacing: 16) {
-                    Text("HohohSolutions CRM")
+                    Text("Nebula")
                         .font(.title2.weight(.bold))
                     Text(err)
                         .multilineTextAlignment(.center)
@@ -28,7 +28,7 @@ struct ContentView: View {
                 VStack(spacing: 12) {
                     ProgressView()
                         .scaleEffect(1.2)
-                    Text("CRM wordt geladen…")
+                    Text("Nebula wordt geladen…")
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
