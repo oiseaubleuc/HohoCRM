@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ApiStatusBanner } from "@/components/ui/api-status";
 import { orionGet } from "@/lib/orion-api";
 
@@ -28,8 +29,18 @@ export default async function ProjectsPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-4">
-      <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Projects</h1>
-      <p className="text-sm text-slate-500">{projects.length} project(en) · API</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-white">Projects</h1>
+          <p className="text-sm text-slate-500">{projects.length} project(en) · API</p>
+        </div>
+        <Link
+          href="/projects/new"
+          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+        >
+          Nieuw project
+        </Link>
+      </div>
 
       <div className="overflow-x-auto rounded-xl border border-border bg-surface shadow-card">
         <table className="w-full min-w-[720px] text-left text-sm">

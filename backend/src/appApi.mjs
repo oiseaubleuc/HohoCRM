@@ -22,7 +22,7 @@ function setAppCors(req, res) {
   } else if (!isProd) {
     res.setHeader('Access-Control-Allow-Origin', '*');
   }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader(
     'Access-Control-Allow-Headers',
     'Content-Type, X-Orion-User-Id, X-Orion-Tenant-Id, X-Orion-Ts, X-Orion-Signature'
@@ -58,6 +58,29 @@ function relTime(iso) {
   const d = Math.floor(h / 24);
   if (d < 7) return `${d} d geleden`;
   return new Date(iso).toLocaleDateString('nl-BE');
+}
+
+async function nextInvoiceNumber(prisma, tenantId) {
+  const year = new Date().getFullYear();
+  const prefix = `INV-${year}-`;
+  const last = await prisma.invoice.findFirst({
+    where: { tenantId, deletedAt: null, number: { startsWith: prefix } },
+    orderBy: { number: 'desc' },
+    select: { number: true },
+  });
+  let n = 1;
+  if (last?.number) {
+    const part = last.number.slice(prefix.length);
+    const parsed = parseInt(part, 10);
+    if (Number.isFinite(parsed)) n = parsed + 1;
+  }
+  return `${prefix}${String(n).padStart(4, '0')}`;
+}
+
+function parseDateOnly(s) {
+  if (!s || typeof s !== 'string') return null;
+  const d = new Date(s.trim());
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
 export const appApiRouter = express.Router();
@@ -531,5 +554,242 @@ appApiRouter.get('/dashboard', async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: { code: 'DASHBOARD_FAILED', message: 'Kon dashboard niet bouwen.' } });
+  }
+});
+
+appApiRouter.post('/clients', async (req, res) => {
+  const { prisma, tenant, userId } = req.orion;
+  const b = req.body || {};
+  const companyName = typeof b.companyName === 'string' ? b.companyName.trim() : '';
+  if (!companyName) {
+    return res.status(400).json({ error: { code: 'VALIDATION', message: 'Bedrijfsnaam is verplicht.' } });
+  }
+  const status =
+    typeof b.status === 'string' && ['LEAD', 'PROSPECT', 'ACTIVE', 'INACTIVE'].includes(b.status)
+      ? b.status
+      : 'LEAD';
+  try {
+    const row = await prisma.client.create({
+      data: {
+        tenantId: tenant.id,
+        companyName,
+        contactName: typeof b.contactName === 'string' ? b.contactName.trim() || null : null,
+        email: typeof b.email === 'string' ? b.email.trim() || null : null,
+        city: typeof b.city === 'string' ? b.city.trim() || null : null,
+        status,
+      },
+    });
+    await prisma.activityLog.create({
+      data: {
+        tenantId: tenant.id,
+        actorId: userId,
+        entityType: 'CLIENT',
+        entityId: row.id,
+        action: 'client.created',
+        metadata: { companyName: row.companyName },
+      },
+    });
+    res.status(201).json({ client: { id: row.id, companyName: row.companyName } });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: { code: 'CREATE_FAILED', message: 'Kon klant niet aanmaken.' } });
+  }
+});
+
+appApiRouter.post('/projects', async (req, res) => {
+  const { prisma, tenant, userId } = req.orion;
+  const b = req.body || {};
+  const title = typeof b.title === 'string' ? b.title.trim() : '';
+  if (!title) {
+    return res.status(400).json({ error: { code: 'VALIDATION', message: 'Projecttitel is verplicht.' } });
+  }
+  let clientId = null;
+  if (b.clientId != null && String(b.clientId).trim() !== '') {
+    const cid = String(b.clientId).trim();
+    const c = await prisma.client.findFirst({
+      where: { id: cid, tenantId: tenant.id, deletedAt: null },
+    });
+    if (!c) {
+      return res.status(400).json({ error: { code: 'VALIDATION', message: 'Onbekende klant voor deze workspace.' } });
+    }
+    clientId = cid;
+  }
+  const status =
+    typeof b.status === 'string' && ['PLANNED', 'ACTIVE', 'BLOCKED', 'COMPLETED'].includes(b.status)
+      ? b.status
+      : 'PLANNED';
+  const priority =
+    typeof b.priority === 'string' && ['LOW', 'NORMAL', 'HIGH', 'URGENT'].includes(b.priority)
+      ? b.priority
+      : 'NORMAL';
+  try {
+    const row = await prisma.project.create({
+      data: {
+        tenantId: tenant.id,
+        clientId,
+        title,
+        status,
+        priority,
+      },
+    });
+    await prisma.activityLog.create({
+      data: {
+        tenantId: tenant.id,
+        actorId: userId,
+        entityType: 'PROJECT',
+        entityId: row.id,
+        action: 'project.created',
+        metadata: { title: row.title },
+      },
+    });
+    res.status(201).json({ project: { id: row.id, title: row.title } });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: { code: 'CREATE_FAILED', message: 'Kon project niet aanmaken.' } });
+  }
+});
+
+appApiRouter.post('/tasks', async (req, res) => {
+  const { prisma, tenant, userId } = req.orion;
+  const b = req.body || {};
+  const taskTitle = typeof b.title === 'string' ? b.title.trim() : '';
+  if (!taskTitle) {
+    return res.status(400).json({ error: { code: 'VALIDATION', message: 'Taaktitel is verplicht.' } });
+  }
+  let projectId = null;
+  let clientId = null;
+  if (b.projectId != null && String(b.projectId).trim() !== '') {
+    const pid = String(b.projectId).trim();
+    const p = await prisma.project.findFirst({
+      where: { id: pid, tenantId: tenant.id, deletedAt: null },
+    });
+    if (!p) {
+      return res.status(400).json({ error: { code: 'VALIDATION', message: 'Onbekend project.' } });
+    }
+    projectId = pid;
+  }
+  if (b.clientId != null && String(b.clientId).trim() !== '') {
+    const cid = String(b.clientId).trim();
+    const c = await prisma.client.findFirst({
+      where: { id: cid, tenantId: tenant.id, deletedAt: null },
+    });
+    if (!c) {
+      return res.status(400).json({ error: { code: 'VALIDATION', message: 'Onbekende klant.' } });
+    }
+    clientId = cid;
+  }
+  const status =
+    typeof b.status === 'string' && ['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE'].includes(b.status)
+      ? b.status
+      : 'TODO';
+  const priority =
+    typeof b.priority === 'string' && ['LOW', 'NORMAL', 'HIGH', 'URGENT'].includes(b.priority)
+      ? b.priority
+      : 'NORMAL';
+  let dueDate = null;
+  if (typeof b.dueDate === 'string' && b.dueDate.trim()) {
+    const d = parseDateOnly(b.dueDate);
+    if (!d) {
+      return res.status(400).json({ error: { code: 'VALIDATION', message: 'Ongeldige deadline.' } });
+    }
+    dueDate = d;
+  }
+  try {
+    const row = await prisma.task.create({
+      data: {
+        tenantId: tenant.id,
+        projectId,
+        clientId,
+        title: taskTitle,
+        status,
+        priority,
+        dueDate,
+      },
+    });
+    await prisma.activityLog.create({
+      data: {
+        tenantId: tenant.id,
+        actorId: userId,
+        entityType: 'TASK',
+        entityId: row.id,
+        action: 'task.created',
+        metadata: { title: row.title },
+      },
+    });
+    res.status(201).json({ task: { id: row.id, title: row.title } });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: { code: 'CREATE_FAILED', message: 'Kon taak niet aanmaken.' } });
+  }
+});
+
+appApiRouter.post('/invoices', async (req, res) => {
+  const { prisma, tenant, userId } = req.orion;
+  const b = req.body || {};
+  const clientRaw = b.clientId != null ? String(b.clientId).trim() : '';
+  if (!clientRaw) {
+    return res.status(400).json({ error: { code: 'VALIDATION', message: 'Klant is verplicht.' } });
+  }
+  const clientRow = await prisma.client.findFirst({
+    where: { id: clientRaw, tenantId: tenant.id, deletedAt: null },
+  });
+  if (!clientRow) {
+    return res.status(400).json({ error: { code: 'VALIDATION', message: 'Onbekende klant.' } });
+  }
+  let projectId = null;
+  if (b.projectId != null && String(b.projectId).trim() !== '') {
+    const pid = String(b.projectId).trim();
+    const p = await prisma.project.findFirst({
+      where: { id: pid, tenantId: tenant.id, deletedAt: null },
+    });
+    if (!p) {
+      return res.status(400).json({ error: { code: 'VALIDATION', message: 'Onbekend project.' } });
+    }
+    projectId = pid;
+  }
+  const amountRaw = b.amount;
+  const amountNum =
+    typeof amountRaw === 'number' && Number.isFinite(amountRaw)
+      ? amountRaw
+      : typeof amountRaw === 'string'
+        ? parseFloat(amountRaw.replace(',', '.'))
+        : NaN;
+  if (!Number.isFinite(amountNum) || amountNum < 0) {
+    return res.status(400).json({ error: { code: 'VALIDATION', message: 'Voer een geldig bedrag in (EUR).' } });
+  }
+  const amountCents = Math.round(amountNum * 100);
+  const issueDate = parseDateOnly(typeof b.issueDate === 'string' ? b.issueDate : '');
+  const dueDate = parseDateOnly(typeof b.dueDate === 'string' ? b.dueDate : '');
+  if (!issueDate || !dueDate) {
+    return res.status(400).json({ error: { code: 'VALIDATION', message: 'Uitgifte- en vervaldatum zijn verplicht.' } });
+  }
+  try {
+    const number = await nextInvoiceNumber(prisma, tenant.id);
+    const row = await prisma.invoice.create({
+      data: {
+        tenantId: tenant.id,
+        clientId: clientRaw,
+        projectId,
+        number,
+        status: 'DRAFT',
+        amountCents,
+        issueDate,
+        dueDate,
+      },
+    });
+    await prisma.activityLog.create({
+      data: {
+        tenantId: tenant.id,
+        actorId: userId,
+        entityType: 'INVOICE',
+        entityId: row.id,
+        action: 'invoice.created',
+        metadata: { number: row.number },
+      },
+    });
+    res.status(201).json({ invoice: { id: row.id, number: row.number } });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: { code: 'CREATE_FAILED', message: 'Kon factuur niet aanmaken.' } });
   }
 });

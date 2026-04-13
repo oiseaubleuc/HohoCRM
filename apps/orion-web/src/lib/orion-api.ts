@@ -72,3 +72,57 @@ export async function orionGet<T>(path: string): Promise<OrionResult<T>> {
     return { ok: false, error: msg, code: "NETWORK" };
   }
 }
+
+/**
+ * Server-only POST naar Express /v1/app (zelfde BFF-handtekening als GET).
+ */
+export async function orionPost<T>(path: string, body: unknown): Promise<OrionResult<T>> {
+  const session = await auth();
+  if (!session?.user?.id || !session.user.tenantId) {
+    return {
+      ok: false,
+      error: "Niet ingelogd of geen workspace in sessie.",
+      code: "UNAUTHORIZED",
+    };
+  }
+
+  const secret = process.env.ORION_BFF_SECRET?.trim();
+  if (!secret) {
+    return {
+      ok: false,
+      error: "ORION_BFF_SECRET ontbreekt in .env.local — zelfde waarde als backend.",
+      code: "MISCONFIG",
+    };
+  }
+
+  const p = path.startsWith("/") ? path : `/${path}`;
+  const url = `${apiBase()}${p}`;
+  const ts = String(Date.now());
+  const signature = signBff(session.user.id, session.user.tenantId, ts, secret);
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "X-Orion-User-Id": session.user.id,
+        "X-Orion-Tenant-Id": session.user.tenantId,
+        "X-Orion-Ts": ts,
+        "X-Orion-Signature": signature,
+      },
+      body: JSON.stringify(body ?? {}),
+      cache: "no-store",
+    });
+    const bodyJson = (await res.json().catch(() => ({}))) as T & OrionErrorBody;
+    if (!res.ok) {
+      const msg = bodyJson?.error?.message || `HTTP ${res.status}`;
+      const code = bodyJson?.error?.code;
+      return { ok: false, error: msg, code };
+    }
+    return { ok: true, data: bodyJson as T };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Netwerkfout";
+    return { ok: false, error: msg, code: "NETWORK" };
+  }
+}

@@ -1,10 +1,10 @@
 import Link from "next/link";
 
 const actions = [
-  { label: "New client", href: "/clients/new" },
-  { label: "New project", href: "/projects/new" },
-  { label: "New task", href: "/tasks/new" },
-  { label: "New invoice", href: "/invoices/new" },
+  { label: "Nieuwe klant", href: "/clients/new" },
+  { label: "Nieuw project", href: "/projects/new" },
+  { label: "Nieuwe taak", href: "/tasks/new" },
+  { label: "Nieuwe factuur", href: "/invoices/new" },
 ] as const;
 
 export function QuickActions() {
