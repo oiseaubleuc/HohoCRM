@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Bouwt AppIcon.icns van een vierkante PNG (bijv. webapp/public/nebula-logo.png) via sips + iconutil (macOS).
+# Bouwt AppIcon.icns van een vierkante PNG (bijv. webapp/public/orion-logo.png) via sips + iconutil (macOS).
 set -euo pipefail
 SRC="${1:?Usage: icns_from_png.sh <source.png> <out.icns>}"
 OUT="${2:?Usage: icns_from_png.sh <source.png> <out.icns>}"

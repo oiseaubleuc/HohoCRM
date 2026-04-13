@@ -2,7 +2,7 @@
   "releaseManifestPatch": {
     "version": "1.0.0",
     "pkg": {
-      "url": "https://cdn.example.com/nebula/Nebula-v1.0.0.pkg",
+      "url": "https://cdn.example.com/orion/Orion-v1.0.0.pkg",
       "sha256": ""
     }
   },
@@ -12,7 +12,7 @@
   },
   "brandingDefaults": {
     "companyName": "HohohSolutions",
-    "logoPath": "/nebula-logo.png"
+    "logoPath": "/orion-logo.png"
   },
   "messages": {
     "supportEmail": "sales@hohohsolutions.com"

@@ -1,4 +1,4 @@
-  /* Nebula design system — deep space, nebula accents (premium SaaS) */
+  /* Orion design system — deep space, accent glow (premium SaaS) */
   :root {
     --bg: #06060a;
     --surface: #0b0d12;
@@ -9,7 +9,7 @@
     --accent2: #9b7cff;
     --accent-soft: rgba(94,181,255,0.1);
     --accent-pill-border: rgba(94,181,255,0.22);
-    --nebula-glow: rgba(155,124,255,0.12);
+    --orion-glow: rgba(155,124,255,0.12);
     --text: #e8eaf4;
     --text2: #8b92a8;
     --text3: #5c6378;
@@ -40,7 +40,7 @@
     --accent2: #6d28d9;
     --accent-soft: rgba(37,99,235,0.1);
     --accent-pill-border: rgba(37,99,235,0.2);
-    --nebula-glow: rgba(109,40,217,0.08);
+    --orion-glow: rgba(109,40,217,0.08);
     --text: #0f1117;
     --text2: #4b5163;
     --text3: #7a8194;
@@ -70,7 +70,7 @@
     overflow: hidden;
     background-color: var(--bg);
     background-image:
-      radial-gradient(ellipse 100% 70% at 0% 0%, var(--nebula-glow), transparent 50%),
+      radial-gradient(ellipse 100% 70% at 0% 0%, var(--orion-glow), transparent 50%),
       radial-gradient(ellipse 80% 50% at 100% 10%, rgba(94,181,255,0.06), transparent 45%),
       radial-gradient(ellipse 60% 40% at 50% 100%, rgba(155,124,255,0.05), transparent 50%);
   }
@@ -111,7 +111,7 @@
     box-shadow: 0 0 0 1px var(--border);
   }
 
-  .logo-nebula-name {
+  .logo-orion-name {
     font-size: 20px;
     font-weight: 800;
     letter-spacing: -0.6px;
@@ -121,7 +121,7 @@
     color: transparent;
   }
 
-  html[data-theme="light"] .logo-nebula-name {
+  html[data-theme="light"] .logo-orion-name {
     background: linear-gradient(135deg, var(--text) 20%, var(--accent) 70%, var(--accent2) 100%);
     -webkit-background-clip: text;
     background-clip: text;
@@ -348,9 +348,13 @@
   /* STATS ROW */
   .stats-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 14px;
     margin-bottom: 28px;
+  }
+
+  tr.tr-stock-low td {
+    background: rgba(240, 80, 80, 0.06);
   }
 
   .stat-card {
@@ -454,6 +458,11 @@
   .badge-blue { background: var(--blue-soft); color: var(--blue); }
   .badge-gray { background: var(--surface2); color: var(--text2); }
   .badge-accent { background: var(--accent-soft); color: var(--accent); }
+
+  .badge-peppol-ok { background: var(--green-soft); color: var(--green); }
+  .badge-peppol-sent { background: var(--accent-soft); color: var(--accent2); border-color: var(--accent-pill-border); }
+  .badge-peppol-failed { background: var(--red-soft); color: var(--red); }
+
 
   /* MODAL */
   .modal-overlay {

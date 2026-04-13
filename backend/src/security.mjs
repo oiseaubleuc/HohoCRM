@@ -92,7 +92,7 @@ export function manifestErrorPayload(raw) {
     error: raw._error,
     message:
       raw.message ||
-      'Configureer het release-manifest (RELEASE_MANIFEST_PATH of webapp/public/releases/nebula-release-manifest.json).',
+      'Configureer het release-manifest (RELEASE_MANIFEST_PATH of webapp/public/releases/orion-release-manifest.json).',
   };
   if (!isProd && raw.path) {
     base.path = raw.path;

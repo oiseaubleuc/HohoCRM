@@ -1,0 +1,462 @@
+// Orion — Business Operations Platform
+// Multi-tenant PostgreSQL schema. Run: npx prisma migrate dev
+// Aligns conceptually with sql/001_core.sql; new deployments should prefer Prisma migrations.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Next.js app (apps/orion-web) — zelfde schema, eigen output
+generator orionWeb {
+  provider = "prisma-client-js"
+  output   = "../../apps/orion-web/src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Tenancy & identity ─────────────────────────────────────────
+
+model Tenant {
+  id         String    @id @default(uuid()) @db.Uuid
+  name       String
+  slug       String?   @unique
+  plan       String    @default("starter") // starter | growth | pro | enterprise
+  settings   Json      @default("{}")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  deletedAt  DateTime? @map("deleted_at")
+
+  memberships       Membership[]
+  clients           Client[]
+  tags              Tag[]
+  projects          Project[]
+  tasks             Task[]
+  meetings          Meeting[]
+  invoices          Invoice[]
+  activities        ActivityLog[]
+  notifications     Notification[]
+
+  @@map("tenants")
+}
+
+model User {
+  id                String    @id @default(uuid()) @db.Uuid
+  email             String    @unique
+  emailVerifiedAt   DateTime? @map("email_verified_at")
+  passwordHash      String?   @map("password_hash")
+  name              String?
+  avatarUrl         String?   @map("avatar_url")
+  mfaEnabled        Boolean   @default(false) @map("mfa_enabled")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  deletedAt         DateTime? @map("deleted_at")
+
+  memberships            Membership[]
+  managedClients         Client[]           @relation("ClientAccountManager")
+  projectMembers         ProjectMember[]
+  assignedTasks          Task[]             @relation("TaskAssignee")
+  projectNotes           ProjectNote[]
+  meetingParticipants    MeetingParticipant[]
+  activities             ActivityLog[]
+  notifications          Notification[]
+  accounts               Account[]
+  sessions               Session[]
+
+  @@map("users")
+}
+
+// ── Auth.js / NextAuth (database sessions + OAuth) ───────────
+// Zie: https://authjs.dev/getting-started/adapters/prisma
+
+model Account {
+  id                String @id @default(uuid()) @db.Uuid
+  userId            String @map("user_id") @db.Uuid
+  type              String
+  provider          String
+  providerAccountId String @map("provider_account_id")
+  refresh_token     String? @map("refresh_token") @db.Text
+  access_token      String? @map("access_token") @db.Text
+  expires_at        Int?    @map("expires_at")
+  token_type        String? @map("token_type")
+  scope             String? @db.Text
+  id_token          String? @map("id_token") @db.Text
+  session_state     String? @map("session_state")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(uuid()) @db.Uuid
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id") @db.Uuid
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  MANAGER
+  EMPLOYEE
+  FINANCE
+  VIEWER
+}
+
+model Membership {
+  id         String         @id @default(uuid()) @db.Uuid
+  tenantId   String         @map("tenant_id") @db.Uuid
+  userId     String         @map("user_id") @db.Uuid
+  role       MembershipRole @default(EMPLOYEE)
+  invitedAt  DateTime       @default(now()) @map("invited_at")
+  acceptedAt DateTime?      @map("accepted_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([tenantId])
+  @@index([userId])
+  @@map("memberships")
+}
+
+// ── CRM: clients & tags ───────────────────────────────────────
+
+enum ClientStatus {
+  LEAD
+  PROSPECT
+  ACTIVE
+  INACTIVE
+}
+
+model Tag {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  name      String
+  slug      String
+
+  tenant Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  clients ClientTag[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@map("tags")
+}
+
+model Client {
+  id               String       @id @default(uuid()) @db.Uuid
+  tenantId         String       @map("tenant_id") @db.Uuid
+  companyName      String       @map("company_name")
+  contactName      String?      @map("contact_name")
+  email            String?
+  phone            String?
+  addressLine1     String?      @map("address_line1")
+  addressLine2     String?      @map("address_line2")
+  city             String?
+  postalCode       String?      @map("postal_code")
+  country          String?      @default("BE")
+  vatNumber        String?      @map("vat_number")
+  status           ClientStatus @default(LEAD)
+  accountManagerId String?      @map("account_manager_id") @db.Uuid
+  lastContactAt    DateTime?    @map("last_contact_at")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+  deletedAt        DateTime?    @map("deleted_at")
+
+  tenant         Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  accountManager User?       @relation("ClientAccountManager", fields: [accountManagerId], references: [id], onDelete: SetNull)
+  tags           ClientTag[]
+  projects       Project[]
+  tasks          Task[]
+  meetings       Meeting[]
+  invoices       Invoice[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, companyName])
+  @@map("clients")
+}
+
+model ClientTag {
+  clientId String @map("client_id") @db.Uuid
+  tagId    String @map("tag_id") @db.Uuid
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([clientId, tagId])
+  @@map("client_tags")
+}
+
+// ── Projects ──────────────────────────────────────────────────
+
+enum ProjectStatus {
+  PLANNED
+  ACTIVE
+  BLOCKED
+  COMPLETED
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+model Project {
+  id          String        @id @default(uuid()) @db.Uuid
+  tenantId    String        @map("tenant_id") @db.Uuid
+  clientId    String?       @map("client_id") @db.Uuid
+  title       String
+  status      ProjectStatus @default(PLANNED)
+  startDate   DateTime?     @map("start_date") @db.Date
+  deadline    DateTime?     @map("deadline") @db.Date
+  progress    Int           @default(0) // 0–100
+  priority    Priority      @default(NORMAL)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  deletedAt   DateTime?     @map("deleted_at")
+
+  tenant  Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  client  Client?         @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  members ProjectMember[]
+  notes   ProjectNote[]
+  tasks   Task[]
+  meetings Meeting[]
+  invoices Invoice[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, deadline])
+  @@map("projects")
+}
+
+model ProjectMember {
+  projectId String @map("project_id") @db.Uuid
+  userId    String @map("user_id") @db.Uuid
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, userId])
+  @@map("project_members")
+}
+
+model ProjectNote {
+  id        String   @id @default(uuid()) @db.Uuid
+  projectId String   @map("project_id") @db.Uuid
+  authorId  String   @map("author_id") @db.Uuid
+  body      String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author  User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("project_notes")
+}
+
+// ── Tasks ─────────────────────────────────────────────────────
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  DONE
+}
+
+model Task {
+  id          String     @id @default(uuid()) @db.Uuid
+  tenantId    String     @map("tenant_id") @db.Uuid
+  projectId   String?    @map("project_id") @db.Uuid
+  clientId    String?    @map("client_id") @db.Uuid
+  title       String
+  description String?    @db.Text
+  status      TaskStatus @default(TODO)
+  priority    Priority   @default(NORMAL)
+  dueDate     DateTime?  @map("due_date") @db.Date
+  assigneeId  String?    @map("assignee_id") @db.Uuid
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  deletedAt   DateTime?  @map("deleted_at")
+
+  tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project        Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  client         Client?             @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  assignee       User?               @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  sourceActionItem MeetingActionItem?
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, dueDate])
+  @@index([assigneeId])
+  @@map("tasks")
+}
+
+// ── Meetings ──────────────────────────────────────────────────
+
+model Meeting {
+  id            String    @id @default(uuid()) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  clientId      String?   @map("client_id") @db.Uuid
+  projectId     String?   @map("project_id") @db.Uuid
+  title         String?
+  startsAt      DateTime  @map("starts_at")
+  endsAt        DateTime? @map("ends_at")
+  summary       String?   @db.Text
+  decisions     String?   @db.Text
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  client       Client?              @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  project      Project?             @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  participants MeetingParticipant[]
+  actionItems  MeetingActionItem[]
+
+  @@index([tenantId])
+  @@index([tenantId, startsAt])
+  @@map("meetings")
+}
+
+model MeetingParticipant {
+  id        String  @id @default(uuid()) @db.Uuid
+  meetingId String  @map("meeting_id") @db.Uuid
+  userId    String? @map("user_id") @db.Uuid
+  guestName String? @map("guest_name")
+  guestEmail String? @map("guest_email")
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([meetingId])
+  @@map("meeting_participants")
+}
+
+model MeetingActionItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  meetingId   String   @map("meeting_id") @db.Uuid
+  title       String
+  done        Boolean  @default(false)
+  taskId      String?  @unique @map("task_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  task    Task?   @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([meetingId])
+  @@map("meeting_action_items")
+}
+
+// ── Finance: invoices ─────────────────────────────────────────
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+model Invoice {
+  id          String        @id @default(uuid()) @db.Uuid
+  tenantId    String        @map("tenant_id") @db.Uuid
+  clientId    String        @map("client_id") @db.Uuid
+  projectId   String?       @map("project_id") @db.Uuid
+  number      String
+  status      InvoiceStatus @default(DRAFT)
+  amountCents Int           @map("amount_cents")
+  currency    String        @default("EUR")
+  issueDate   DateTime      @map("issue_date") @db.Date
+  dueDate     DateTime      @map("due_date") @db.Date
+  paidAt      DateTime?     @map("paid_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  deletedAt   DateTime?     @map("deleted_at")
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  client  Client  @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, dueDate])
+  @@map("invoices")
+}
+
+// ── Activity & notifications ────────────────────────────────
+
+enum ActivityEntityType {
+  CLIENT
+  PROJECT
+  TASK
+  INVOICE
+  MEETING
+  NOTE
+  USER
+}
+
+model ActivityLog {
+  id         String             @id @default(uuid()) @db.Uuid
+  tenantId   String             @map("tenant_id") @db.Uuid
+  actorId    String?            @map("actor_id") @db.Uuid
+  entityType ActivityEntityType @map("entity_type")
+  entityId   String             @map("entity_id")
+  action     String
+  metadata   Json               @default("{}")
+  createdAt  DateTime           @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  actor  User?  @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([tenantId, entityType, entityId])
+  @@map("activity_logs")
+}
+
+enum NotificationType {
+  TASK_DUE
+  INVOICE_OVERDUE
+  MEETING_UPCOMING
+  MENTION
+  SYSTEM
+}
+
+model Notification {
+  id         String           @id @default(uuid()) @db.Uuid
+  tenantId   String           @map("tenant_id") @db.Uuid
+  userId     String           @map("user_id") @db.Uuid
+  type       NotificationType
+  title      String
+  body       String?
+  readAt     DateTime?        @map("read_at")
+  entityType String?          @map("entity_type")
+  entityId   String?          @map("entity_id")
+  createdAt  DateTime         @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@map("notifications")
+}

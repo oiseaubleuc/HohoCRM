@@ -1,22 +1,24 @@
 import './styles/app.css';
 
 /** Netlify: zet in Netlify → Environment (ook bij build) + zelfde secret in function env */
-window.__NEBULA_FOLLOWUP_URL__ = import.meta.env.VITE_FOLLOWUP_URL || '';
-window.__NEBULA_FOLLOWUP_SECRET__ = import.meta.env.VITE_FOLLOWUP_SECRET || '';
-window.__HOHOH_FOLLOWUP_URL__ = window.__NEBULA_FOLLOWUP_URL__;
-window.__HOHOH_FOLLOWUP_SECRET__ = window.__NEBULA_FOLLOWUP_SECRET__;
+window.__ORION_FOLLOWUP_URL__ = import.meta.env.VITE_FOLLOWUP_URL || '';
+window.__ORION_FOLLOWUP_SECRET__ = import.meta.env.VITE_FOLLOWUP_SECRET || '';
+window.__HOHOH_FOLLOWUP_URL__ = window.__ORION_FOLLOWUP_URL__;
+window.__HOHOH_FOLLOWUP_SECRET__ = window.__ORION_FOLLOWUP_SECRET__;
 
-const THEME_STORAGE_KEY = 'nebula-theme';
-const THEME_LEGACY_KEY = 'hohoh-theme';
+const THEME_STORAGE_KEY = 'orion-theme';
+const THEME_LEGACY_KEYS = ['nebula-theme', 'hohoh-theme'];
 
 function getStoredTheme() {
   try {
     let v = localStorage.getItem(THEME_STORAGE_KEY);
     if (v === 'light' || v === 'dark') return v;
-    v = localStorage.getItem(THEME_LEGACY_KEY);
-    if (v === 'light' || v === 'dark') {
-      localStorage.setItem(THEME_STORAGE_KEY, v);
-      return v;
+    for (const k of THEME_LEGACY_KEYS) {
+      v = localStorage.getItem(k);
+      if (v === 'light' || v === 'dark') {
+        localStorage.setItem(THEME_STORAGE_KEY, v);
+        return v;
+      }
     }
   } catch { /* ignore */ }
   return null;

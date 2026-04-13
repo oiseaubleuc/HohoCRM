@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Vult sha256 + bytes (+ optioneel url) in webapp/public/releases/nebula-release-manifest.json
+# Vult sha256 + bytes (+ optioneel url) in webapp/public/releases/orion-release-manifest.json
 # na een lokale build. Zonder BASE_URL blijven url-velden leeg tot je ze op CDN zet.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MANIFEST="$ROOT/webapp/public/releases/nebula-release-manifest.json"
-PKG="$ROOT/artifacts/Nebula-v1.0.0.pkg"
-DMG="$ROOT/artifacts/Nebula-v1.0.0.dmg"
+MANIFEST="$ROOT/webapp/public/releases/orion-release-manifest.json"
+PKG="$ROOT/artifacts/Orion-v1.0.0.pkg"
+DMG="$ROOT/artifacts/Orion-v1.0.0.dmg"
 
 command -v jq >/dev/null || { echo "Installeer: brew install jq"; exit 1; }
 [[ -f "$MANIFEST" ]] || { echo "Ontbreekt: $MANIFEST"; exit 1; }
@@ -30,7 +30,7 @@ BASE="${BASE_URL:-}"
 update_block pkg "$PKG" "$BASE"
 update_block dmg "$DMG" "$BASE"
 
-ZIPFILE="$(ls -t "$ROOT/releases"/*/installers/Nebula-Native.app.zip 2>/dev/null | head -1 || true)"
+ZIPFILE="$(ls -t "$ROOT/releases"/*/installers/Orion-Native.app.zip 2>/dev/null | head -1 || true)"
 if [[ -n "$ZIPFILE" && -f "$ZIPFILE" ]]; then
   update_block nativeZip "$ZIPFILE" "$BASE"
 fi
@@ -38,5 +38,5 @@ fi
 mv "$tmp" "$MANIFEST"
 echo "✓ Bijgewerkt: $MANIFEST"
 if [[ -z "$BASE" ]]; then
-  echo "  Tip: BASE_URL=https://cdn.jouwdomein.com/nebula/v1.0.0 $0"
+  echo "  Tip: BASE_URL=https://cdn.jouwdomein.com/orion/v1.0.0 $0"
 fi

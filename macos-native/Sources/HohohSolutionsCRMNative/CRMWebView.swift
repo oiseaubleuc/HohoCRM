@@ -14,7 +14,7 @@ struct CRMWebView: NSViewRepresentable {
         config.userContentController.add(context.coordinator, name: "hohohDownload")
         let js = """
         // Marker + helper for native downloads (PDF, exports, etc.)
-        window.__NEBULA_NATIVE_APP__ = true;
+        window.__ORION_NATIVE_APP__ = true;
         window.__HOHOH_NATIVE_APP__ = true;
         """
         config.userContentController.addUserScript(

@@ -10,9 +10,10 @@ macos-native/.build/
 build/
 artifacts/
 !artifacts/.gitkeep
-releases/
+/releases/
 updates/dist/
 updates/*private*
 updates/*.pem
 .DS_Store
 tools/.iconset_build/
+.next/

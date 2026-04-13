@@ -21,6 +21,17 @@
   to = "/downloads/index.html"
   status = 200
 
+# Oude bookmark / CDN-paden naar logo
+[[redirects]]
+  from = "/nebula-logo.png"
+  to = "/orion-logo.png"
+  status = 301
+
+[[redirects]]
+  from = "/releases/nebula-release-manifest.json"
+  to = "/releases/orion-release-manifest.json"
+  status = 301
+
 [[headers]]
   for = "/*"
   [headers.values]

@@ -1,364 +1,566 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>HohohSolutions CRM — Vitrine</title>
-  <meta name="description" content="HohohSolutions CRM: lokaal, snel en volledig ondernemersbeheer voor freelancers en KMO's." />
-  <meta id="theme-color-meta" name="theme-color" content="#0e0e10" />
-  <link rel="icon" href="/nebula-logo.png" type="image/png">
-  <script>
-  (function () {
-    try {
-      var v = localStorage.getItem('nebula-theme') || localStorage.getItem('hohoh-theme');
-      var light = v === 'light' || (v !== 'dark' && window.matchMedia('(prefers-color-scheme: light)').matches);
-      var h = document.documentElement;
-      if (light) h.setAttribute('data-theme', 'light');
-      else h.removeAttribute('data-theme');
-      var meta = document.getElementById('theme-color-meta');
-      if (meta) meta.setAttribute('content', light ? '#f4f4f8' : '#0e0e10');
-    } catch (e) {}
-  })();
-  </script>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #0e0e10;
-      --bg-elevated: #12121a;
-      --surface: #16161a;
-      --border: #2a2a35;
-      --accent: #7c6af7;
-      --accent-soft: rgba(124, 106, 247, 0.14);
-      --text: #ececf3;
-      --muted: #a2a2b9;
-      --ok: #3ecf8e;
-    }
-    html[data-theme="light"] {
-      --bg: #f4f5f9;
-      --bg-elevated: #eef0f6;
-      --surface: #ffffff;
-      --border: #dde1ec;
-      --accent: #5b4cdb;
-      --accent-soft: rgba(91, 76, 219, 0.1);
-      --text: #0f1117;
-      --muted: #4b5163;
-      --ok: #0d9f6e;
-    }
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      margin: 0;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.55;
-      transition: background 0.2s ease, color 0.2s ease;
-    }
-    a { color: var(--accent); }
-    a:focus-visible, button:focus-visible, summary:focus-visible {
-      outline: 2px solid var(--accent);
-      outline-offset: 3px;
-    }
-    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 22px; }
-    /* Nav */
-    .nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 14px 22px;
-      max-width: 1160px;
-      margin: 0 auto;
-      border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-      z-index: 20;
-      background: rgba(14, 14, 16, 0.9);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-    }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-weight: 800;
-      font-size: 17px;
-      letter-spacing: -0.35px;
-      color: var(--text);
-      text-decoration: none;
-    }
-    .brand .brand-mark { width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0; display: block; object-fit: contain; box-shadow: 0 0 0 1px var(--border); }
-    .brand span { line-height: 1.15; }
-    .brand small { display: block; font-size: 10px; font-weight: 600; color: var(--muted); margin-top: 2px; letter-spacing: 0.06em; text-transform: uppercase; }
-    html[data-theme="light"] .nav { background: rgba(244, 245, 249, 0.92); }
-    .nav-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-    .nav-link {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--muted);
-      text-decoration: none;
-      padding: 8px 12px;
-      border-radius: 8px;
-      transition: color 0.15s;
-    }
-    .nav-link:hover { color: var(--text); }
-    .theme-toggle {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 40px;
-      height: 38px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--muted);
-      cursor: pointer;
-      transition: border-color 0.15s, color 0.15s;
-    }
-    .theme-toggle:hover { color: var(--text); border-color: var(--accent); }
-    .theme-toggle svg { width: 18px; height: 18px; display: block; }
-    .theme-toggle .icon-sun { display: none; }
-    html[data-theme="light"] .theme-toggle .icon-moon { display: none; }
-    html[data-theme="light"] .theme-toggle .icon-sun { display: block; }
-    /* Hero */
-    .hero-wrap {
-      position: relative;
-      overflow: hidden;
-    }
-    .hero-wrap::before {
-      content: '';
-      position: absolute;
-      top: -40%;
-      right: -15%;
-      width: min(70vw, 520px);
-      height: min(70vw, 520px);
-      border-radius: 50%;
-      background: radial-gradient(circle, var(--accent-soft) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .hero { padding: 64px 0 40px; position: relative; }
-    .kicker {
-      font: 500 12px 'JetBrains Mono', monospace;
-      letter-spacing: 1.1px;
-      color: var(--accent);
-      text-transform: uppercase;
-    }
-    h1 {
-      font-size: clamp(30px, 5.5vw, 56px);
-      line-height: 1.05;
-      margin: 16px 0 18px;
-      font-weight: 800;
-      letter-spacing: -0.025em;
-      max-width: 18ch;
-    }
-    .sub {
-      max-width: 38rem;
-      color: var(--muted);
-      font-size: clamp(15px, 2.2vw, 19px);
-      margin: 0;
-    }
-    .cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; align-items: center; }
-    .btn {
-      padding: 13px 20px;
-      border-radius: 10px;
-      text-decoration: none;
-      font-weight: 700;
-      font-size: 14px;
-      transition: opacity 0.15s, border-color 0.15s, transform 0.12s;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-    }
-    .btn:active { transform: scale(0.98); }
-    .btn-primary { background: var(--accent); color: #fff; border: none; }
-    .btn-primary:hover { opacity: 0.93; }
-    .btn-ghost { border: 1px solid var(--border); color: var(--text); background: transparent; }
-    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
-    /* Grid cards */
-    .section-label {
-      font: 500 11px 'JetBrains Mono', monospace;
-      letter-spacing: 1px;
-      color: var(--accent);
-      text-transform: uppercase;
-      margin-bottom: 10px;
-    }
-    .grid-head { margin: 48px 0 20px; }
-    .grid-head h2 { margin: 0; font-size: clamp(20px, 3vw, 26px); font-weight: 800; letter-spacing: -0.02em; }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 16px;
-      margin-bottom: 48px;
-    }
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 22px 20px;
-      transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
-    }
-    .card:hover {
-      border-color: #4a3d9e;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
-    }
-    html[data-theme="light"] .card:hover { border-color: #a39bf0; }
-    html:not([data-theme="light"]) .card:hover {
-      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
-    }
-    .card h3 { margin: 0 0 10px; font-size: 16px; font-weight: 700; }
-    .card p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
-    .card-bar {
-      width: 40px;
-      height: 3px;
-      border-radius: 2px;
-      background: var(--accent);
-      margin-bottom: 14px;
-      opacity: 0.9;
-    }
-    /* Price */
-    .price { display: grid; grid-template-columns: 1.35fr 1fr; gap: 18px; margin-bottom: 40px; align-items: stretch; }
-    .price .card { height: 100%; }
-    .price h3 { margin: 0 0 14px; font-size: 17px; font-weight: 700; }
-    .big { font-size: 42px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; margin: 0 0 8px; }
-    .big span { font-size: 15px; color: var(--muted); font-weight: 600; vertical-align: middle; }
-    .ok { color: var(--ok); font-size: 14px; font-weight: 600; margin-bottom: 6px; }
-    .list { margin: 8px 0 0; padding: 0; list-style: none; }
-    .list li {
-      font-size: 14px;
-      color: var(--muted);
-      margin: 11px 0;
-      padding-left: 26px;
-      position: relative;
-    }
-    .list li::before {
-      content: '✓';
-      position: absolute;
-      left: 0;
-      color: var(--ok);
-      font-weight: 700;
-    }
-    .price-highlight {
-      background: linear-gradient(160deg, var(--surface) 0%, var(--bg-elevated) 100%);
-      border-color: #3d3485;
-    }
-    html[data-theme="light"] .price-highlight { border-color: #c4bdf5; }
-    html:not([data-theme="light"]) .price-highlight {
-      box-shadow: 0 0 0 1px rgba(124, 106, 247, 0.12);
-    }
-    .footer {
-      border-top: 1px solid var(--border);
-      padding: 22px 0 36px;
-      color: var(--muted);
-      font-size: 13px;
-    }
-    @media (max-width: 920px) {
-      .grid { grid-template-columns: 1fr 1fr; }
-      .price { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 620px) {
-      .hero { padding: 44px 0 28px; }
-      .grid { grid-template-columns: 1fr; }
-      .btn { width: 100%; }
-      .nav { flex-wrap: wrap; }
-      .nav-right { width: 100%; justify-content: space-between; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orion — De complete ondernemers-ERP</title>
+<meta name="description" content="Beheer klanten, projecten, facturen en planning in één platform. Peppol BIS 3.0 compliant. Eenmalig €299, geen abonnement. Gebouwd in België.">
+<meta property="og:title" content="Orion — De complete ondernemers-ERP">
+<meta property="og:description" content="Klanten, projecten, facturen, planning — alles in één tool. Peppol-compliant. €299 eenmalig.">
+<meta property="og:image" content="https://hohosolutions.com/og-image-1200x630.png">
+<meta property="og:url" content="https://hohosolutions.com">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+--bg:#06060a;--surface:#0e0e14;--surface2:#14141c;--surface3:#1a1a24;
+--border:#1e1e2a;--border2:#2a2a38;
+--accent:#7c6af7;--accent2:#9b8ef9;--accent3:#c4bafc;--accent-glow:rgba(124,106,247,.15);
+--green:#3ecf8e;--green-dim:rgba(62,207,142,.1);
+--amber:#f0a500;--red:#f05050;
+--text:#eeeef2;--text2:#8888a0;--text3:#44444e;
+--radius:14px;--radius-sm:8px;
+}
+
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased;font-size:16px;line-height:1.6}
+a{text-decoration:none;color:inherit}
+img{display:block;max-width:100%}
+
+/* noise */
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");opacity:.02;pointer-events:none;z-index:0}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 clamp(20px,5vw,60px);height:64px;display:flex;align-items:center;justify-content:space-between;transition:all .3s}
+nav.scrolled{background:rgba(6,6,10,.88);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.n-logo{display:flex;align-items:center;gap:10px}
+.n-logo-orb{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--accent2),#534ab7);display:flex;align-items:center;justify-content:center}
+.n-logo-orb svg{width:18px;height:18px}
+.n-logo-text{font-size:15px;font-weight:600;letter-spacing:-.3px}.n-logo-text span{color:var(--text2);font-weight:400;font-size:12px;margin-left:6px}
+.n-links{display:flex;gap:32px;list-style:none}
+.n-links a{font-size:13px;color:var(--text2);font-weight:500;transition:color .2s;letter-spacing:-.1px}.n-links a:hover{color:var(--text)}
+.n-cta{display:flex;gap:10px;align-items:center}
+.btn{padding:9px 20px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:inherit;border:none;cursor:pointer;transition:all .2s;letter-spacing:-.2px}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border2)}.btn-ghost:hover{color:var(--text);background:var(--surface2);border-color:var(--border2)}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:var(--accent2);transform:translateY(-1px);box-shadow:0 8px 24px rgba(124,106,247,.25)}
+.btn-lg{padding:14px 32px;font-size:15px;border-radius:10px}
+.burger{display:none;background:none;border:none;cursor:pointer;padding:4px}
+.burger span{display:block;width:20px;height:2px;background:var(--text2);margin:4px 0;border-radius:2px;transition:all .3s}
+
+/* ── HERO ── */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 24px 80px;position:relative;overflow:hidden}
+.hero-glow{position:absolute;width:800px;height:800px;background:radial-gradient(circle,rgba(124,106,247,.1) 0%,transparent 65%);top:50%;left:50%;transform:translate(-50%,-55%);pointer-events:none;animation:breathe 8s ease-in-out infinite}
+@keyframes breathe{0%,100%{opacity:.7;transform:translate(-50%,-55%) scale(1)}50%{opacity:1;transform:translate(-50%,-55%) scale(1.05)}}
+.hero-orb{position:absolute;border-radius:50%;pointer-events:none}
+.hero-orb-1{width:250px;height:250px;background:radial-gradient(circle,rgba(62,207,142,.04),transparent 70%);top:18%;right:8%;animation:drift 10s ease-in-out infinite}
+.hero-orb-2{width:180px;height:180px;background:radial-gradient(circle,rgba(240,165,0,.03),transparent 70%);bottom:22%;left:6%;animation:drift 12s ease-in-out infinite reverse}
+@keyframes drift{0%,100%{transform:translateY(0)}50%{transform:translateY(-16px)}}
+
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(124,106,247,.06);border:1px solid rgba(124,106,247,.2);border-radius:100px;padding:6px 18px 6px 12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent2);letter-spacing:.8px;margin-bottom:36px;position:relative;z-index:1;animation:fadeUp .7s ease both}
+.badge-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+.hero-h1{font-family:'Instrument Serif',serif;font-size:clamp(40px,7vw,84px);font-weight:400;line-height:1.05;letter-spacing:-2.5px;margin-bottom:24px;position:relative;z-index:1;animation:fadeUp .7s .1s ease both}
+.hero-h1 em{font-style:italic;background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+.hero-sub{font-size:clamp(16px,1.8vw,19px);color:var(--text2);max-width:520px;line-height:1.7;font-weight:300;margin-bottom:44px;position:relative;z-index:1;animation:fadeUp .7s .2s ease both}
+
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:48px;position:relative;z-index:1;animation:fadeUp .7s .3s ease both}
+
+.hero-proof{display:flex;align-items:center;gap:20px;position:relative;z-index:1;animation:fadeUp .7s .4s ease both;flex-wrap:wrap;justify-content:center}
+.proof-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3)}
+.proof-check{color:var(--green);width:14px;height:14px}
+.proof-sep{width:3px;height:3px;border-radius:50%;background:var(--border2)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── MOCKUP ── */
+.mockup-wrap{position:relative;z-index:1;width:100%;max-width:960px;margin:64px auto 0;animation:fadeUp 1s .5s ease both}
+.mockup-glow{position:absolute;inset:-40px;background:radial-gradient(ellipse at 50% 0%,rgba(124,106,247,.12),transparent 70%);pointer-events:none}
+.mockup{background:var(--surface);border:1px solid var(--border2);border-radius:16px;overflow:hidden;box-shadow:0 40px 100px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.02)}
+.mockup-bar{background:var(--bg);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:8px}
+.mockup-dots{display:flex;gap:5px}.mockup-dots span{width:10px;height:10px;border-radius:50%}
+.dot-r{background:#f05050}.dot-y{background:#f0a500}.dot-g{background:#3ecf8e}
+.mockup-url{flex:1;text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);background:var(--surface2);border-radius:5px;padding:4px 12px;max-width:240px;margin:0 auto}
+.mockup-body{display:flex;height:380px}
+.mockup-sb{width:160px;border-right:1px solid var(--border);padding:14px 10px;flex-shrink:0;background:var(--surface)}
+.sb-brand{font-size:11px;font-weight:700;margin-bottom:12px;letter-spacing:-.2px}
+.sb-brand em{color:var(--accent);font-style:normal}
+.sb-label{font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--text3);letter-spacing:1.5px;padding:8px 6px 3px;text-transform:uppercase}
+.sb-item{display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:4px;font-size:10px;font-weight:500;color:var(--text2);margin-bottom:1px}
+.sb-item.on{background:rgba(124,106,247,.1);color:var(--accent)}
+.sb-item svg{width:11px;height:11px;flex-shrink:0}
+.mockup-main{flex:1;padding:16px;overflow:hidden}
+.mm-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+.mm-stat{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px}
+.mm-stat-l{font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--text3);margin-bottom:3px;letter-spacing:1px}
+.mm-stat-v{font-size:18px;font-weight:800}
+.mm-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mm-card{background:var(--surface2);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.mm-card-h{padding:6px 8px;border-bottom:1px solid var(--border);font-size:9px;font-weight:700}
+.mm-row{display:flex;align-items:center;gap:5px;padding:5px 8px;border-bottom:1px solid var(--border);font-size:8px}
+.mm-row:last-child{border-bottom:none}
+.mm-av{width:16px;height:16px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:800;flex-shrink:0}
+.mm-badge{font-family:'JetBrains Mono',monospace;font-size:7px;padding:1px 5px;border-radius:8px}
+
+/* ── SECTIONS ── */
+section{padding:clamp(80px,10vw,140px) clamp(20px,5vw,60px);position:relative}
+.sec-in{max-width:1100px;margin:0 auto}
+.sec-border{border-top:1px solid var(--border)}
+
+.tag{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);letter-spacing:2.5px;text-transform:uppercase;margin-bottom:14px;display:block}
+.sh2{font-family:'Instrument Serif',serif;font-size:clamp(32px,4.5vw,52px);font-weight:400;letter-spacing:-1.5px;line-height:1.1;margin-bottom:18px}
+.sh2 em{font-style:italic;color:var(--accent2)}
+.sdesc{font-size:17px;color:var(--text2);max-width:500px;line-height:1.7;font-weight:300}
+
+/* reveal */
+.rv{opacity:0;transform:translateY(28px);transition:opacity .7s ease,transform .7s ease}.rv.vis{opacity:1;transform:translateY(0)}
+.d1{transition-delay:.1s}.d2{transition-delay:.2s}.d3{transition-delay:.3s}.d4{transition-delay:.4s}.d5{transition-delay:.5s}
+
+/* ── STATS BAR ── */
+.stats-bar{border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:48px clamp(20px,5vw,60px);display:grid;grid-template-columns:repeat(4,1fr);gap:0;background:var(--surface)}
+.stat{text-align:center;padding:0 20px;border-right:1px solid var(--border)}.stat:last-child{border-right:none}
+.stat-num{font-family:'Instrument Serif',serif;font-size:clamp(40px,5vw,56px);font-weight:400;letter-spacing:-2px;line-height:1}
+.stat-num b{color:var(--accent2)}
+.stat-label{font-size:12px;color:var(--text3);margin-top:6px;font-weight:400}
+
+/* ── FEATURES ── */
+.feat-intro{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:end;margin-bottom:48px}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.feat-card{background:var(--bg);padding:28px;position:relative;overflow:hidden;transition:background .25s}
+.feat-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(124,106,247,.03),transparent);opacity:0;transition:opacity .3s}
+.feat-card:hover{background:var(--surface)}.feat-card:hover::before{opacity:1}
+.feat-ico{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;border:1px solid var(--border)}
+.feat-ico svg{width:18px;height:18px}
+.feat-name{font-size:15px;font-weight:600;margin-bottom:8px;letter-spacing:-.2px}
+.feat-desc{font-size:13px;color:var(--text2);line-height:1.6;font-weight:300}
+.feat-tag{display:inline-block;margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:1px;border:1px solid var(--border);border-radius:3px;padding:2px 7px}
+
+/* ── BENTO ── */
+.bento{display:grid;grid-template-columns:repeat(12,1fr);grid-template-rows:repeat(2,260px);gap:14px;padding:0 clamp(20px,5vw,60px)}
+.bento-cell{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;overflow:hidden;position:relative;transition:border-color .2s}.bento-cell:hover{border-color:var(--border2)}
+.b1{grid-column:span 5}.b2{grid-column:span 4}.b3{grid-column:span 3}.b4{grid-column:span 3}.b5{grid-column:span 5}.b6{grid-column:span 4}
+.bento-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
+.bento-title{font-size:18px;font-weight:600;letter-spacing:-.3px;margin-bottom:6px}
+.bento-desc{font-size:12px;color:var(--text2);line-height:1.6}
+
+/* mini kanban */
+.mk{display:flex;gap:6px;margin-top:16px}.mk-col{flex:1}
+.mk-h{font-size:8px;font-weight:700;margin-bottom:4px;font-family:'JetBrains Mono',monospace}
+.mk-c{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:5px 6px;font-size:9px;margin-bottom:3px;font-weight:500}
+.mk-t{display:inline-block;margin-top:3px;font-size:7px;padding:1px 4px;border-radius:2px;font-family:'JetBrains Mono',monospace}
+
+/* mini gantt */
+.mg{margin-top:16px}.mg-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;height:22px}
+.mg-lbl{width:70px;font-size:9px;color:var(--text2);flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mg-track{flex:1;background:var(--surface2);border-radius:3px;height:12px;position:relative}
+.mg-bar{position:absolute;top:2px;height:8px;border-radius:2px}
+
+/* mini invoice */
+.mi{margin-top:14px}.mi-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:10px;align-items:center}.mi-row:last-child{border-bottom:none}
+.mi-badge{font-size:8px;padding:1px 6px;border-radius:8px;font-family:'JetBrains Mono',monospace}
+
+/* donut */
+.donut-wrap{display:flex;align-items:center;gap:16px;margin-top:16px}
+.donut{transform:rotate(-90deg)}
+
+/* ── PEPPOL SECTION ── */
+.peppol-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;margin-top:48px}
+.peppol-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:32px;position:relative;overflow:hidden}
+.peppol-card::before{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;background:radial-gradient(circle,rgba(62,207,142,.06),transparent 70%);pointer-events:none}
+.peppol-badge{display:inline-flex;align-items:center;gap:6px;background:var(--green-dim);border:1px solid rgba(62,207,142,.2);border-radius:100px;padding:4px 12px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--green);letter-spacing:.5px;margin-bottom:16px}
+.peppol-list{margin-top:16px}.peppol-list-item{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text2);padding:8px 0;line-height:1.5}
+.peppol-list-item svg{color:var(--green);flex-shrink:0;margin-top:3px}
+
+/* ── PRICING ── */
+.price-card{max-width:540px;margin:48px auto 0;background:var(--surface);border:2px solid var(--accent);border-radius:20px;padding:48px;text-align:center;position:relative;overflow:hidden}
+.price-card::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(124,106,247,.04) 0%,transparent 100%);pointer-events:none}
+.price-popular{position:absolute;top:-1px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:5px 20px;border-radius:0 0 10px 10px;letter-spacing:.5px}
+.price-amount{font-family:'Instrument Serif',serif;font-size:72px;font-weight:400;letter-spacing:-3px;line-height:1;margin:24px 0 4px}
+.price-amount sup{font-size:28px;letter-spacing:-1px;vertical-align:super}
+.price-period{font-size:14px;color:var(--text3);margin-bottom:28px}
+.price-features{list-style:none;text-align:left;margin-bottom:32px}
+.price-features li{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text2);padding:8px 0;border-bottom:1px solid var(--border)}.price-features li:last-child{border-bottom:none}
+.price-features li svg{color:var(--green);flex-shrink:0;width:16px;height:16px}
+.btn-price{width:100%;padding:16px;font-size:16px;border-radius:12px}
+
+/* ── TESTIMONIALS ── */
+.test-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:48px}
+.test-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;transition:border-color .2s}.test-card:hover{border-color:var(--border2)}
+.test-text{font-family:'Instrument Serif',serif;font-size:17px;line-height:1.5;margin-bottom:20px;font-style:italic;letter-spacing:-.2px}
+.test-author{display:flex;align-items:center;gap:10px}
+.test-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.test-name{font-size:13px;font-weight:600}
+.test-role{font-size:11px;color:var(--text3)}
+.test-stars{display:flex;gap:2px;margin-bottom:12px;font-size:12px;color:var(--amber)}
+
+/* ── FAQ ── */
+.faq-list{margin-top:48px;max-width:700px}
+.faq-item{border-bottom:1px solid var(--border);overflow:hidden}
+.faq-q{display:flex;justify-content:space-between;align-items:center;padding:20px 0;font-size:16px;font-weight:500;cursor:pointer;letter-spacing:-.2px;transition:color .2s}.faq-q:hover{color:var(--accent2)}
+.faq-arrow{color:var(--text3);transition:transform .3s;flex-shrink:0}
+.faq-item.open .faq-arrow{transform:rotate(180deg);color:var(--accent)}
+.faq-a{font-size:14px;color:var(--text2);line-height:1.7;max-height:0;overflow:hidden;transition:max-height .4s ease,padding .3s;font-weight:300}
+.faq-item.open .faq-a{max-height:300px;padding-bottom:20px}
+
+/* ── CTA ── */
+.cta{text-align:center;position:relative;overflow:hidden;padding:clamp(80px,10vw,140px) 24px}
+.cta-glow{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(124,106,247,.08),transparent 65%);pointer-events:none}
+.cta-h{font-family:'Instrument Serif',serif;font-size:clamp(36px,5.5vw,68px);font-weight:400;letter-spacing:-2px;line-height:1.05;margin-bottom:20px;position:relative;z-index:1}
+.cta-h em{font-style:italic;color:var(--accent2)}
+.cta-sub{font-size:17px;color:var(--text2);max-width:440px;margin:0 auto 36px;line-height:1.7;font-weight:300;position:relative;z-index:1}
+.cta-actions{display:flex;gap:12px;justify-content:center;position:relative;z-index:1}
+.cta-note{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);margin-top:16px;position:relative;z-index:1}
+
+/* ── FOOTER ── */
+footer{border-top:1px solid var(--border);padding:48px clamp(20px,5vw,60px);display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;max-width:1100px;margin:0 auto}
+.ft-brand p{font-size:12px;color:var(--text3);line-height:1.6;margin-top:8px}
+.ft-col h4{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px}
+.ft-col a{display:block;font-size:13px;color:var(--text2);padding:3px 0;transition:color .2s}.ft-col a:hover{color:var(--text)}
+.ft-bottom{border-top:1px solid var(--border);padding:24px clamp(20px,5vw,60px);display:flex;justify-content:space-between;align-items:center;max-width:1100px;margin:0 auto;flex-wrap:wrap;gap:12px}
+.ft-copy{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace}
+.ft-badges{display:flex;gap:16px;align-items:center}
+.ft-badge{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--green);letter-spacing:1px;display:flex;align-items:center;gap:4px}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+.n-links{display:none}.burger{display:block}
+.feat-intro{grid-template-columns:1fr;gap:24px}
+.feat-grid{grid-template-columns:1fr}
+.bento{grid-template-columns:1fr;grid-template-rows:auto;padding:0 20px}
+.b1,.b2,.b3,.b4,.b5,.b6{grid-column:span 1}
+.stats-bar{grid-template-columns:1fr 1fr;padding:32px 20px}
+.stat{padding:16px;border-right:none;border-bottom:1px solid var(--border)}
+.peppol-grid{grid-template-columns:1fr;gap:32px}
+.test-grid{grid-template-columns:1fr}
+footer{grid-template-columns:1fr 1fr;gap:24px}
+.mockup-sb{display:none}.mockup-body{height:280px}
+.mm-stats{grid-template-columns:1fr 1fr}
+}
+@media(max-width:600px){
+nav{padding:0 16px;height:56px}
+.hero{padding:100px 16px 60px}
+.hero-actions{flex-direction:column;width:100%}
+.btn-lg{width:100%;justify-content:center;text-align:center}
+.stats-bar{grid-template-columns:1fr 1fr}
+.price-card{padding:32px 24px}
+footer{grid-template-columns:1fr}
+.ft-bottom{flex-direction:column;text-align:center}
+.cta-actions{flex-direction:column;align-items:center}
+}
+</style>
 </head>
 <body>
-  <header class="nav">
-    <a class="brand" href="/vitrine/">
-      <img class="brand-mark" src="/nebula-logo.png" width="36" height="36" alt="" decoding="async">
-      <span>HohohSolutions CRM<small>Ondernemersplatform</small></span>
-    </a>
-    <div class="nav-right">
-      <a class="nav-link" href="#voordelen">Voordelen</a>
-      <a class="nav-link" href="#prijs">Prijs</a>
-      <a class="btn btn-primary" href="/" style="padding:9px 16px;font-size:13px">Open demo</a>
-      <button type="button" class="theme-toggle" id="theme-toggle" title="Thema wisselen" aria-label="Schakel tussen licht en donker thema">
-        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
-      </button>
-    </div>
-  </header>
 
-  <div class="hero-wrap">
-    <div class="wrap hero">
-      <div class="kicker">HohohSolutions CRM</div>
-      <h1>De complete ondernemers-CRM<br>voor Mac.</h1>
-      <p class="sub">Beheer klanten, projecten, facturen, taken en meetings op één plek. Lokaal, snel en zonder complex gedoe. Ideaal voor freelancers en kleine teams.</p>
-      <div class="cta">
-        <a class="btn btn-primary" href="/">Open demo platform</a>
-        <a class="btn btn-ghost" href="mailto:sales@hohohsolutions.com?subject=HohohSolutions%20CRM%20Aankoop">Vraag offerte aan</a>
-      </div>
-    </div>
-  </div>
+<!-- ── NAV ── -->
+<nav id="nav">
+<a href="#" class="n-logo">
+<div class="n-logo-orb"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" fill="white" opacity=".9"/><ellipse cx="12" cy="12" rx="10" ry="4" stroke="white" stroke-width="1.5" opacity=".5"/><ellipse cx="12" cy="12" rx="4" ry="10" stroke="white" stroke-width="1.5" opacity=".5"/></svg></div>
+<div class="n-logo-text">Orion <span>by HohoSolutions</span></div>
+</a>
+<ul class="n-links">
+<li><a href="#features">Features</a></li>
+<li><a href="#modules">Modules</a></li>
+<li><a href="#peppol">Peppol</a></li>
+<li><a href="#pricing">Prijs</a></li>
+<li><a href="#faq">FAQ</a></li>
+</ul>
+<div class="n-cta">
+<a href="#pricing" class="btn btn-ghost">Prijs bekijken</a>
+<a href="#demo" class="btn btn-primary">Open demo</a>
+</div>
+<button class="burger" onclick="document.body.classList.toggle('mob-open')" aria-label="Menu"><span></span><span></span><span></span></button>
+</nav>
 
-  <div class="wrap">
-    <div class="grid-head" id="voordelen">
-      <div class="section-label">Waarom deze CRM</div>
-      <h2>Alles wat je nodig hebt in één workflow</h2>
-    </div>
-    <div class="grid">
-      <div class="card"><div class="card-bar"></div><h3>Klanten &amp; projecten</h3><p>Van eerste contact tot oplevering. Hou alles overzichtelijk en professioneel.</p></div>
-      <div class="card"><div class="card-bar"></div><h3>Facturatie &amp; voorschotten</h3><p>Facturen opstellen, opvolgen en betalingen beheren met slimme voorinvulling.</p></div>
-      <div class="card"><div class="card-bar"></div><h3>Planning &amp; productiviteit</h3><p>Taken, roadmap, tijdlijn en meetings in één workflow voor ondernemers.</p></div>
-    </div>
+<!-- ── HERO ── -->
+<div class="hero">
+<div class="hero-glow"></div>
+<div class="hero-orb hero-orb-1"></div>
+<div class="hero-orb hero-orb-2"></div>
 
-    <div class="price" id="prijs">
-      <div class="card">
-        <h3>Wat je krijgt</h3>
-        <ul class="list">
-          <li>CRM, projecten, taken, agenda en meetings</li>
-          <li>Financieel dashboard, facturen en voorschotflow</li>
-          <li>GitHub-koppeling voor slimme project-invulling</li>
-          <li>Werkt op desktop en mobiel (responsive)</li>
-        </ul>
-      </div>
-      <div class="card price-highlight">
-        <h3>Prijs</h3>
-        <div class="big">€299 <span>eenmalig</span></div>
-        <div class="ok">Geen maandelijkse abonnementskost</div>
-        <div class="cta" style="margin-top:18px">
-          <a class="btn btn-primary" style="width:100%" href="mailto:sales@hohohsolutions.com?subject=Ik%20wil%20HohohSolutions%20CRM%20kopen">Nu aankopen</a>
-        </div>
-      </div>
-    </div>
+<div class="hero-badge"><div class="badge-dot"></div>PEPPOL BIS 3.0 COMPLIANT · 2026</div>
 
-    <footer class="footer">
-      © 2026 HohohSolutions — vitrinewebsite · <a href="mailto:sales@hohohsolutions.com">sales@hohohsolutions.com</a>
-    </footer>
-  </div>
+<h1 class="hero-h1">De complete<br>ondernemers-ERP,<br><em>zonder abonnement.</em></h1>
 
-  <script>
-    (function () {
-      var KEY = 'nebula-theme';
-      function stored() {
-        try {
-          var v = localStorage.getItem(KEY);
-          if (v === 'light' || v === 'dark') return v;
-          v = localStorage.getItem('hohoh-theme');
-          if (v === 'light' || v === 'dark') { localStorage.setItem(KEY, v); return v; }
-        } catch (e) {}
-        return null;
-      }
-      function apply(theme) {
-        var root = document.documentElement;
-        if (theme === 'light') root.setAttribute('data-theme', 'light');
-        else root.removeAttribute('data-theme');
-        var meta = document.getElementById('theme-color-meta');
-        if (meta) meta.setAttribute('content', theme === 'light' ? '#f4f5f9' : '#0e0e10');
-      }
-      document.getElementById('theme-toggle').addEventListener('click', function () {
-        var next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-        try { localStorage.setItem(KEY, next); } catch (e) {}
-        apply(next);
-      });
-      window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', function (e) {
-        if (stored() != null) return;
-        apply(e.matches ? 'light' : 'dark');
-      });
-    })();
-  </script>
+<p class="hero-sub">Klanten, projecten, facturen, taken en planning — alles in één platform. Peppol-compliant. Eenmalig €299. Uw data blijft lokaal.</p>
+
+<div class="hero-actions">
+<a href="#demo" class="btn btn-primary btn-lg">Open demo platform</a>
+<a href="#pricing" class="btn btn-ghost btn-lg">Bekijk wat je krijgt →</a>
+</div>
+
+<div class="hero-proof">
+<div class="proof-item"><svg class="proof-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Geen abonnement</div>
+<div class="proof-sep"></div>
+<div class="proof-item"><svg class="proof-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Werkt offline</div>
+<div class="proof-sep"></div>
+<div class="proof-item"><svg class="proof-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>100% lokale data</div>
+<div class="proof-sep"></div>
+<div class="proof-item"><svg class="proof-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Mac · Windows · iPad · Web</div>
+</div>
+
+<!-- Mockup -->
+<div class="mockup-wrap">
+<div class="mockup-glow"></div>
+<div class="mockup">
+<div class="mockup-bar">
+<div class="mockup-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+<div class="mockup-url">orion-erp.local</div>
+</div>
+<div class="mockup-body">
+<div class="mockup-sb">
+<div style="padding:4px 6px 10px;border-bottom:1px solid var(--border);margin-bottom:8px">
+<div class="sb-brand">Orion <em>ERP</em></div>
+<div style="font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--accent);background:rgba(124,106,247,.08);border:1px solid rgba(124,106,247,.15);border-radius:2px;padding:1px 4px;display:inline-block;letter-spacing:1px">PLATFORM</div>
+</div>
+<div class="sb-label">Overzicht</div>
+<div class="sb-item on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</div>
+<div class="sb-label">Beheer</div>
+<div class="sb-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Klanten</div>
+<div class="sb-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Projecten</div>
+<div class="sb-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Taken</div>
+<div class="sb-label">Financieel</div>
+<div class="sb-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Facturen</div>
+<div class="sb-label">Planning</div>
+<div class="sb-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><path d="M7 12h10"/><path d="M5 18h8"/></svg>Tijdlijn</div>
+<div class="sb-label">Peppol</div>
+<div class="sb-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9"/></svg><span style="color:var(--green)">Peppol</span></div>
+</div>
+<div class="mockup-main">
+<div class="mm-stats">
+<div class="mm-stat"><div class="mm-stat-l">KLANTEN</div><div class="mm-stat-v" style="color:var(--text)">24</div></div>
+<div class="mm-stat"><div class="mm-stat-l">PROJECTEN</div><div class="mm-stat-v" style="color:var(--accent)">8</div></div>
+<div class="mm-stat"><div class="mm-stat-l">OPEN TAKEN</div><div class="mm-stat-v" style="color:var(--amber)">15</div></div>
+<div class="mm-stat"><div class="mm-stat-l">OPENSTAAND</div><div class="mm-stat-v" style="color:var(--green);font-size:14px">€12.450</div></div>
+</div>
+<div class="mm-grid">
+<div class="mm-card">
+<div class="mm-card-h">Recente klanten</div>
+<div class="mm-row"><div class="mm-av" style="background:rgba(124,106,247,.12);color:var(--accent)">JB</div><div style="flex:1;font-weight:600">Jansen Corp.</div><div class="mm-badge" style="background:rgba(62,207,142,.1);color:var(--green)">actief</div></div>
+<div class="mm-row"><div class="mm-av" style="background:rgba(62,207,142,.1);color:var(--green)">MV</div><div style="flex:1;font-weight:600">Martens NV</div><div class="mm-badge" style="background:rgba(62,207,142,.1);color:var(--green)">actief</div></div>
+<div class="mm-row"><div class="mm-av" style="background:rgba(240,165,0,.1);color:var(--amber)">KD</div><div style="flex:1;font-weight:600">KD Design</div><div class="mm-badge" style="background:rgba(240,165,0,.1);color:var(--amber)">prospect</div></div>
+<div class="mm-row"><div class="mm-av" style="background:rgba(74,158,255,.1);color:#4a9eff">TP</div><div style="flex:1;font-weight:600">TechPro BV</div><div class="mm-badge" style="background:rgba(62,207,142,.1);color:var(--green)">actief</div></div>
+</div>
+<div class="mm-card">
+<div class="mm-card-h">Open taken</div>
+<div class="mm-row"><div style="width:10px;height:10px;border-radius:2px;border:1.5px solid var(--border2);flex-shrink:0"></div><div style="flex:1">Dashboard UI</div><div class="mm-badge" style="background:rgba(240,80,80,.1);color:var(--red)">hoog</div></div>
+<div class="mm-row"><div style="width:10px;height:10px;border-radius:2px;border:1.5px solid var(--border2);flex-shrink:0"></div><div style="flex:1">API koppeling</div><div class="mm-badge" style="background:rgba(240,165,0,.1);color:var(--amber)">medium</div></div>
+<div class="mm-row"><div style="width:10px;height:10px;border-radius:2px;border:1.5px solid var(--border2);flex-shrink:0"></div><div style="flex:1">Offerte versturen</div><div class="mm-badge" style="background:rgba(124,106,247,.1);color:var(--accent)">normaal</div></div>
+<div class="mm-row"><div style="width:10px;height:10px;border-radius:2px;border:1.5px solid var(--border2);flex-shrink:0"></div><div style="flex:1">Peppol test</div><div class="mm-badge" style="background:rgba(62,207,142,.1);color:var(--green)">klaar</div></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ── STATS ── -->
+<div class="stats-bar rv">
+<div class="stat"><div class="stat-num">12<b>+</b></div><div class="stat-label">Modules inbegrepen</div></div>
+<div class="stat"><div class="stat-num">€0<b>/m</b></div><div class="stat-label">Geen maandelijkse kosten</div></div>
+<div class="stat"><div class="stat-num">100<b>%</b></div><div class="stat-label">Lokale data, geen cloud</div></div>
+<div class="stat"><div class="stat-num">4<b>+</b></div><div class="stat-label">Platformen ondersteund</div></div>
+</div>
+
+<!-- ── FEATURES ── -->
+<section id="features">
+<div class="sec-in">
+<div class="feat-intro">
+<div class="rv"><span class="tag">Features</span><h2 class="sh2">Alles wat je nodig<br>hebt als <em>ondernemer</em></h2></div>
+<div class="rv d1"><p class="sdesc">Orion ERP is gebouwd voor zelfstandigen, freelancers en KMO's die te druk zijn voor complexe software. Eenvoudig starten, krachtig groeien.</p></div>
+</div>
+<div class="feat-grid rv">
+<div class="feat-card">
+<div class="feat-ico" style="background:rgba(124,106,247,.06)"><svg viewBox="0 0 24 24" fill="none" stroke="#7c6af7" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+<div class="feat-name">Klantenbeheer</div>
+<div class="feat-desc">Relaties & verkoop met contactinfo, BTW-nummers, notities en factuurhistoriek per klant.</div>
+<div class="feat-tag">ERP · RELATIES</div>
+</div>
+<div class="feat-card">
+<div class="feat-ico" style="background:rgba(62,207,142,.06)"><svg viewBox="0 0 24 24" fill="none" stroke="#3ecf8e" stroke-width="1.5"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="8" rx="1"/></svg></div>
+<div class="feat-name">Projectarchitectuur</div>
+<div class="feat-desc">Kanban-borden, roadmap, tijdlijn, tech stack en bestanden — per project.</div>
+<div class="feat-tag">KANBAN · ROADMAP</div>
+</div>
+<div class="feat-card">
+<div class="feat-ico" style="background:rgba(240,165,0,.06)"><svg viewBox="0 0 24 24" fill="none" stroke="#f0a500" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+<div class="feat-name">Facturen & Peppol</div>
+<div class="feat-desc">Facturen, voorschotten, creditnota's met BTW-berekening. Peppol BIS 3.0 compliant.</div>
+<div class="feat-tag">PEPPOL · EN 16931</div>
+</div>
+<div class="feat-card">
+<div class="feat-ico" style="background:rgba(74,158,255,.06)"><svg viewBox="0 0 24 24" fill="none" stroke="#4a9eff" stroke-width="1.5"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>
+<div class="feat-name">Taken & To-Do</div>
+<div class="feat-desc">Taaklijsten met prioriteiten, deadlines en Kanban-weergave. Alles georganiseerd.</div>
+<div class="feat-tag">TO-DO · TAKEN</div>
+</div>
+<div class="feat-card">
+<div class="feat-ico" style="background:rgba(124,106,247,.06)"><svg viewBox="0 0 24 24" fill="none" stroke="#7c6af7" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+<div class="feat-name">Agenda & Planning</div>
+<div class="feat-desc">Gantt-tijdlijn, kalender, afspraken en herinneringen. Alles visueel gepland.</div>
+<div class="feat-tag">GANTT · AGENDA</div>
+</div>
+<div class="feat-card">
+<div class="feat-ico" style="background:rgba(62,207,142,.06)"><svg viewBox="0 0 24 24" fill="none" stroke="#3ecf8e" stroke-width="1.5"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9"/></svg></div>
+<div class="feat-name">Communicatielog</div>
+<div class="feat-desc">E-mails, gesprekken en notities per klant en project centraal bijhouden.</div>
+<div class="feat-tag">LOG · NOTITIES</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- ── PEPPOL ── -->
+<section id="peppol" class="sec-border">
+<div class="sec-in">
+<div class="rv"><span class="tag">E-facturatie</span><h2 class="sh2">Peppol BIS 3.0<br><em>ingebouwd.</em></h2></div>
+<div class="rv d1"><p class="sdesc">Sinds 1 januari 2026 is gestructureerde e-facturatie verplicht voor alle B2B-transacties in België. Orion is er klaar voor.</p></div>
+<div class="peppol-grid">
+<div class="rv d2">
+<div class="peppol-list">
+<div class="peppol-list-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>UBL 2.1 facturen conform EN 16931</div>
+<div class="peppol-list-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Automatische Peppol-check per klant (KBO + BTW)</div>
+<div class="peppol-list-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>BTW-afronding per tarief (wet 2026)</div>
+<div class="peppol-list-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Gestructureerde mededeling (+++xxx/xxxx/xxxxx+++)</div>
+<div class="peppol-list-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Verstuur direct via Peppol-netwerk (Digiteal Access Point)</div>
+<div class="peppol-list-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Peppol inbox voor binnenkomende facturen</div>
+<div class="peppol-list-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>PDF-export met uw branding als extra</div>
+</div>
+</div>
+<div class="peppol-card rv d3">
+<div class="peppol-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>PEPPOL VERIFIED</div>
+<div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:1px;margin-bottom:8px">VERSTUURDE FACTUUR</div>
+<div style="font-size:20px;font-weight:700;margin-bottom:2px">#2026-0042</div>
+<div style="font-size:13px;color:var(--text2);margin-bottom:16px">Jansen Corp. · €5.868,50 incl. BTW</div>
+<div style="display:flex;gap:8px;margin-bottom:16px">
+<div style="flex:1;background:var(--surface2);border-radius:6px;padding:8px 10px"><div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--text3);margin-bottom:2px">STATUS</div><div style="font-size:12px;color:var(--green);font-weight:600">Delivered ✓</div></div>
+<div style="flex:1;background:var(--surface2);border-radius:6px;padding:8px 10px"><div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--text3);margin-bottom:2px">PEPPOL ID</div><div style="font-size:12px;font-family:'JetBrains Mono',monospace">0208:0441797980</div></div>
+</div>
+<div style="background:var(--surface2);border-radius:6px;padding:8px 10px">
+<div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--text3);margin-bottom:2px">MEDEDELING</div>
+<div style="font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--accent2)">+++002/0260/04240+++</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- ── PRICING ── -->
+<section id="pricing" class="sec-border">
+<div class="sec-in" style="text-align:center">
+<div class="rv"><span class="tag" style="display:block;text-align:center">Prijs</span><h2 class="sh2" style="text-align:center">Eén prijs.<br><em>Alles inbegrepen.</em></h2></div>
+<div class="rv d1"><p class="sdesc" style="margin:0 auto">Geen abonnement. Geen verborgen kosten. Eenmalig betalen, voor altijd gebruiken.</p></div>
+
+<div class="price-card rv d2">
+<div class="price-popular">ALLES-IN-ÉÉN</div>
+<div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);letter-spacing:1px;margin-top:24px">ORION ERP</div>
+<div class="price-amount"><sup>€</sup>299</div>
+<div class="price-period">Eenmalig · Geen abonnement · Levenslang</div>
+<ul class="price-features">
+<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Alle 12+ modules (ERP, Kanban, Gantt, Facturen...)</li>
+<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Peppol BIS 3.0 e-facturatie (EN 16931)</li>
+<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>PDF-export met eigen logo en branding</li>
+<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Mac · Windows · iPad · iPhone · Web</li>
+<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>100% lokale data — geen cloud vereist</li>
+<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Werkt offline, overal</li>
+<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Gratis updates binnen de huidige versie</li>
+<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>E-mail support</li>
+</ul>
+<a href="mailto:info@hohosolutions.com?subject=Orion%20ERP%20aanschaffen" class="btn btn-primary btn-price">Nu aanschaffen — €299</a>
+<div style="margin-top:12px;font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace">🔒 Veilige betaling via Stripe · Factuur met BTW</div>
+</div>
+
+<div class="rv d3" style="margin-top:32px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;display:inline-flex;align-items:center;gap:20px;flex-wrap:wrap;justify-content:center">
+<div style="text-align:left"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent);letter-spacing:1px;margin-bottom:4px">ENTERPRISE / OP MAAT</div><div style="font-size:15px;font-weight:600">ERP op maat nodig voor uw bedrijf?</div><div style="font-size:13px;color:var(--text2)">Wij bouwen uw ERP volledig op maat. Vaste prijs, uw eigendom.</div></div>
+<a href="mailto:info@hohosolutions.com?subject=ERP%20op%20maat" class="btn btn-ghost">Offerte aanvragen →</a>
+</div>
+</div>
+</section>
+
+<!-- ── TESTIMONIALS ── -->
+<section class="sec-border">
+<div class="sec-in">
+<div class="rv" style="text-align:center"><span class="tag" style="display:block;text-align:center">Ervaringen</span><h2 class="sh2" style="text-align:center">Ondernemers zijn<br><em>enthousiast</em></h2></div>
+<div class="test-grid">
+<div class="test-card rv d1">
+<div class="test-stars">★★★★★</div>
+<div class="test-text">"Eindelijk een ERP dat niet probeert me abonnementen te verkopen. Alles zit erin wat ik nodig heb als zelfstandige."</div>
+<div class="test-author"><div class="test-av" style="background:linear-gradient(135deg,#7c6af7,#3ecf8e)">SV</div><div><div class="test-name">Sarah V.</div><div class="test-role">UX Designer · Brussel</div></div></div>
+</div>
+<div class="test-card rv d2">
+<div class="test-stars">★★★★★</div>
+<div class="test-text">"De Peppol-integratie was de reden waarom ik overgeschakeld ben. Facturen gaan nu automatisch via het netwerk."</div>
+<div class="test-author"><div class="test-av" style="background:linear-gradient(135deg,#3ecf8e,#4a9eff)">TM</div><div><div class="test-name">Thomas M.</div><div class="test-role">Webontwikkelaar · Gent</div></div></div>
+</div>
+<div class="test-card rv d3">
+<div class="test-stars">★★★★★</div>
+<div class="test-text">"Ik gebruik het dagelijks op mijn iPad. De kanban-borden per project houden me gefocust. Absolute aanrader."</div>
+<div class="test-author"><div class="test-av" style="background:linear-gradient(135deg,#f0a500,#f05050)">LB</div><div><div class="test-name">Lena B.</div><div class="test-role">Consultant · Antwerpen</div></div></div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- ── FAQ ── -->
+<section id="faq" class="sec-border">
+<div class="sec-in">
+<div class="rv"><span class="tag">FAQ</span><h2 class="sh2">Veelgestelde<br><em>vragen</em></h2></div>
+<div class="faq-list rv d1">
+<div class="faq-item"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Is Peppol e-facturatie echt verplicht?<svg class="faq-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div><div class="faq-a">Ja. Sinds 1 januari 2026 is gestructureerde e-facturatie via Peppol verplicht voor alle B2B-transacties tussen Belgische BTW-plichtigen. PDF-facturen per e-mail zijn niet langer geldig als enig formaat. Orion genereert automatisch conforme UBL 2.1 facturen.</div></div>
+<div class="faq-item"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Waar wordt mijn data opgeslagen?<svg class="faq-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div><div class="faq-a">Volledig lokaal op uw apparaat, in de localStorage van uw browser. Er gaan geen gegevens naar externe servers. Alleen wanneer u een Peppol-factuur verstuurt, gaat de factuurdata via het beveiligde Peppol-netwerk naar de ontvanger.</div></div>
+<div class="faq-item"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Op welke apparaten werkt het?<svg class="faq-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div><div class="faq-a">Mac, Windows, iPad, iPhone en elke moderne browser. Het platform is volledig responsive en kan als PWA geïnstalleerd worden via "Zet op beginscherm". Op Mac is er ook een .pkg installer beschikbaar.</div></div>
+<div class="faq-item"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Is er echt geen abonnement?<svg class="faq-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div><div class="faq-a">Correct. U betaalt eenmalig €299 en gebruikt Orion voor altijd. Geen maandelijkse kosten, geen licentie die verloopt. Updates binnen de huidige versie zijn gratis inbegrepen.</div></div>
+<div class="faq-item"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Kan ik mijn data exporteren?<svg class="faq-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div><div class="faq-a">Ja. Exporteer al uw data op elk moment als JSON-backup. U kunt dit bestand importeren op een ander apparaat. Facturen kunnen ook als PDF of UBL XML geëxporteerd worden.</div></div>
+<div class="faq-item"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Kan ik een ERP op maat laten bouwen?<svg class="faq-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div><div class="faq-a">Absoluut. HohoSolutions bouwt ERP-systemen volledig op maat van uw sector en processen. Vaste prijs, broncode-overdracht, training inbegrepen. Neem contact op voor een vrijblijvende offerte.</div></div>
+</div>
+</div>
+</section>
+
+<!-- ── CTA ── -->
+<div class="cta" id="demo">
+<div class="cta-glow"></div>
+<h2 class="cta-h rv">Klaar om te<br><em>beginnen?</em></h2>
+<p class="cta-sub rv d1">Eenmalig €299. Alle modules. Peppol inbegrepen. Geen abonnement. Uw data, lokaal.</p>
+<div class="cta-actions rv d2">
+<a href="mailto:info@hohosolutions.com?subject=Orion%20ERP%20aanschaffen" class="btn btn-primary btn-lg">Nu aanschaffen — €299</a>
+<a href="mailto:info@hohosolutions.com?subject=Demo%20aanvragen" class="btn btn-ghost btn-lg">Demo aanvragen</a>
+</div>
+<div class="cta-note rv d3">🔒 Veilige betaling · Factuur met BTW · Direct toegang</div>
+</div>
+
+<!-- ── FOOTER ── -->
+<footer>
+<div class="ft-brand">
+<a href="#" class="n-logo" style="margin-bottom:4px">
+<div class="n-logo-orb" style="width:24px;height:24px;border-radius:6px"><svg viewBox="0 0 24 24" fill="none" width="14" height="14"><circle cx="12" cy="12" r="4" fill="white" opacity=".9"/><ellipse cx="12" cy="12" rx="10" ry="4" stroke="white" stroke-width="1.5" opacity=".5"/></svg></div>
+<div class="n-logo-text" style="font-size:13px">Orion</div>
+</a>
+<p>Ondernemers-ERP · Peppol compliant<br>Gebouwd in Brussel, België</p>
+</div>
+<div class="ft-col"><h4>Product</h4><a href="#features">Features</a><a href="#peppol">Peppol</a><a href="#pricing">Prijs</a><a href="#faq">FAQ</a><a href="#demo">Demo</a></div>
+<div class="ft-col"><h4>Bedrijf</h4><a href="mailto:info@hohosolutions.com">Contact</a><a href="/legal/algemene-voorwaarden.html">Algemene Voorwaarden</a><a href="/legal/privacybeleid.html">Privacybeleid</a><a href="/legal/verwerkingsovereenkomst.html">Verwerkingsovereenkomst</a></div>
+<div class="ft-col"><h4>Contact</h4><a href="mailto:info@hohosolutions.com">info@hohosolutions.com</a><a href="tel:+32451015476">+32 451 01 54 76</a><a>Brussel, België</a></div>
+</footer>
+<div class="ft-bottom">
+<div class="ft-copy">© 2026 HohoSolutions · Brussel, België</div>
+<div class="ft-badges">
+<div class="ft-badge"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>PEPPOL BIS 3.0</div>
+<div class="ft-badge"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>EN 16931</div>
+<div class="ft-badge"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>GDPR</div>
+</div>
+</div>
+
+<script>
+// Nav scroll
+window.addEventListener('scroll',()=>{document.getElementById('nav').classList.toggle('scrolled',window.scrollY>40)});
+// Reveal
+const ro=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('vis')})},{threshold:.08});
+document.querySelectorAll('.rv').forEach(el=>ro.observe(el));
+</script>
 </body>
 </html>

@@ -4,7 +4,7 @@ import Sparkle
 #endif
 
 @main
-struct HohohSolutionsCRMNativeApp: App {
+struct OrionNativeApp: App {
     #if !NO_SPARKLE
     /// Sparkle: achtergrondcontrole + menu-item « Controleren op updates… »
     private let updaterController: SPUStandardUpdaterController

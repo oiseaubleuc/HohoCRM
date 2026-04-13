@@ -1,4 +1,4 @@
-# Security — Nebula / HohohSolutions
+# Security — Orion / HohohSolutions
 
 Korte richtlijnen voor SaaS en distributie van macOS-builds.
 
@@ -9,7 +9,7 @@ Korte richtlijnen voor SaaS en distributie van macOS-builds.
 
 ## Geheimen
 
-- Bewaar **geen secrets** in `nebula-release-manifest.json` of in de frontend; dat bestand is publiek.
+- Bewaar **geen secrets** in `orion-release-manifest.json` of in de frontend; dat bestand is publiek.
 - Gebruik `INTERNAL_API_KEY` voor beheer-endpoints totdat echte **JWT + tenant-scopes** live zijn.
 - `.env` staat in `.gitignore` — roteer gelekte sleutels onmiddellijk.
 

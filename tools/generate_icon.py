@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Generate a valid AppIcon.icns without Pillow.
-- Dark space background, nebula fog, orbit arc, planet, stars (Nebula mark).
+- Dark space background, soft fog, orbit arc, planet, stars (Orion mark).
 - Builds a proper .iconset and runs iconutil.
 """
 
@@ -30,7 +30,7 @@ def make_png_bytes(size: int) -> bytes:
 
     radius = max(2, int(size * 0.234))  # ~15/64 rounded rect
 
-    # Ring geometry (legacy spatial mark; prefer webapp/public/nebula-logo.png + icns_from_png.sh)
+    # Ring geometry (legacy spatial mark; prefer webapp/public/orion-logo.png + icns_from_png.sh)
     cx_ring = width * 0.5
     cy_ring = height * (25.7 / 64.0)
     ring_r = width * (20.0 / 64.0)
@@ -81,7 +81,7 @@ def make_png_bytes(size: int) -> bytes:
                 raw.extend((0, 0, 0, 0))
                 continue
 
-            # Nebula fog (cyan / violet)
+            # Soft fog (cyan / violet)
             fx = (x - width * 0.35) / (width * 0.55 + 1e-6)
             fy = (y - height * 0.75) / (height * 0.45 + 1e-6)
             fog1 = max(0.0, 1.0 - (fx * fx + fy * fy)) * 0.42
@@ -171,7 +171,7 @@ def build_icns(output_path: str) -> bool:
 
 if __name__ == "__main__":
     out = sys.argv[1] if len(sys.argv) > 1 else "AppIcon.icns"
-    print("Nebula spatial icon — generator")
+    print("Orion spatial icon — generator")
     ok = build_icns(out)
     if ok:
         print(f"AppIcon.icns aangemaakt: {out}")

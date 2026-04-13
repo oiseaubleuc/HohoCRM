@@ -1,4 +1,4 @@
--- Nebula SaaS — kernschema (PostgreSQL)
+-- Orion SaaS — kernschema (PostgreSQL)
 -- Elke bedrijfsrij: tenant_id NOT NULL waar van toepassing.
 -- Voer uit: psql "$DATABASE_URL" -f sql/001_core.sql
 

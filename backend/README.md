@@ -1,4 +1,4 @@
-# Nebula API (fundament)
+# Orion API (fundament)
 
 PostgreSQL-schema + minimale **Express**-server als startpunt voor multi-tenant SaaS. Dit vervangt **niet** automatisch de huidige `localStorage`-webapp; die blijft standalone tot de frontend op deze API wordt aangesloten.
 
@@ -8,10 +8,17 @@ PostgreSQL-schema + minimale **Express**-server als startpunt voor multi-tenant 
 cd backend
 npm install
 cp .env.example .env
-# Pas DATABASE_URL aan, maak database aan, voer schema uit:
+# Optie A — volledig Orion-domein (aanbevolen voor SaaS):
+# DATABASE_URL=… npx prisma migrate dev
+# npm run db:seed
+# Optie B — alleen legacy kern:
 # psql "$DATABASE_URL" -f sql/001_core.sql
 npm start
 ```
+
+### Prisma (clients, projects, tasks, meetings, invoices, …)
+
+Schema: `prisma/schema.prisma`. Commando’s: `npm run db:generate`, `db:migrate`, `db:push`, `db:seed`, `db:studio`. Architectuur-uitleg: `docs/orion/01-DATABASE.md`.
 
 Endpoints:
 
@@ -22,6 +29,7 @@ Endpoints:
 - `GET` / `PUT` `/v1/admin/platform-config` — **SaaS-beheer** (vereist `INTERNAL_API_KEY`): centrale JSON op schijf (`backend/data/platform-config.json`). `PUT` doet een *deep merge*; daarna worden releases direct hertrokken.
 - `POST /v1/admin/platform-config/reload` — herlees config van schijf (na handmatige edit)
 - `GET /v1/tenants` — lijst tenants (DB vereist; met sleutel: zie `INTERNAL_API_KEY`)
+- **`GET /v1/app/*`** — data voor **apps/orion-web** (Prisma + Auth.js BFF): `tenant`, `dashboard`, `clients`, `projects`, `tasks`, `meetings`, `invoices`. Zie `bffAuth.mjs` voor headers. CORS: o.a. `http://127.0.0.1:3000`.
 - `POST /v1/auth/register` | `/login` — **501 stub** (volgende fase)
 
 Voorbeeld (lokaal, sleutel in `.env`):
@@ -29,7 +37,7 @@ Voorbeeld (lokaal, sleutel in `.env`):
 ```bash
 curl -sS -H "Authorization: Bearer $INTERNAL_API_KEY" http://127.0.0.1:4000/v1/admin/platform-config
 curl -sS -X PUT -H "Authorization: Bearer $INTERNAL_API_KEY" -H "Content-Type: application/json" \
-  -d '{"releaseManifestPatch":{"version":"1.0.1","pkg":{"url":"https://cdn.example.com/Nebula.pkg"}}}' \
+  -d '{"releaseManifestPatch":{"version":"1.0.1","pkg":{"url":"https://cdn.example.com/Orion.pkg"}}}' \
   http://127.0.0.1:4000/v1/admin/platform-config
 ```
 
@@ -48,4 +56,4 @@ Sjabloon: `platform-config.example.json`. Productie: zet `PLATFORM_DATA_DIR` op 
 
 ## Merk
 
-**Nebula** by **HohohSolutions**.
+**Orion** by **HohohSolutions**.

@@ -1,6 +1,6 @@
-# Nebula — webapp
+# Orion — webapp
 
-Productie-webapp (**Nebula** by **HohohSolutions**): Vite + vanilla JS (`public/crm-app.js`), premium dark UI.
+Productie-webapp (**Orion ERP** by **HohoSolutions**): Vite + vanilla JS (`public/crm-app.js`), premium dark UI.
 
 ## Ontwikkelen
 
@@ -16,7 +16,7 @@ npm run dev
 npm run build
 ```
 
-Output: `dist/` (o.a. `index.html`, `crm-app.js`, `invoice-pdf.js`).
+Output: `dist/` (o.a. `index.html`, `crm-app.js`, `invoice-pdf.js`, `orion-logo.png`).
 
 ## Belangrijke bestanden
 
@@ -24,10 +24,12 @@ Output: `dist/` (o.a. `index.html`, `crm-app.js`, `invoice-pdf.js`).
 |-----|-----|
 | `index.html` | Shell + pagina’s |
 | `public/crm-app.js` | Applicatielogica |
-| `public/invoice-pdf.js` | PDF-factuur; branding via `nebula_invoice_branding` (legacy: `hohoh_invoice_branding`) |
-| `src/styles/app.css` | Nebula design tokens |
-| `src/main.js` | CSS + thema (`nebula-theme`) |
+| `public/invoice-pdf.js` | PDF-factuur; branding via `orion_invoice_branding` (legacy: `nebula_invoice_branding`, `hohoh_invoice_branding`) |
+| `public/lib/orion-ubl-generator.js` | UBL 2.1 (`window.OrionUBL`) |
+| `public/lib/orion-peppol-client.js` | Digiteal Peppol (`window.OrionPeppol`) |
+| `src/styles/app.css` | Orion design tokens |
+| `src/main.js` | CSS + thema (`orion-theme`; legacy `nebula-theme` wordt nog gelezen) |
 
 ## Thema
 
-LocalStorage: `nebula-theme` (`light` / `dark`); oude `hohoh-theme` wordt nog gelezen voor migratie.
+LocalStorage: `orion-theme` (`light` / `dark`); legacy `nebula-theme` en `hohoh-theme` worden nog gelezen bij eerste bezoek.

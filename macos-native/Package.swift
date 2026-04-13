@@ -17,15 +17,15 @@ private let sparkleProducts: [Target.Dependency] =
     : [.product(name: "Sparkle", package: "Sparkle")]
 
 let package = Package(
-    name: "HohohSolutionsCRMNative",
+    name: "OrionNative",
     platforms: [.macOS(.v13)],
     products: [
-        .executable(name: "HohohSolutionsCRMNative", targets: ["HohohSolutionsCRMNative"]),
+        .executable(name: "OrionNative", targets: ["OrionNative"]),
     ],
     dependencies: sparklePackages,
     targets: [
         .executableTarget(
-            name: "HohohSolutionsCRMNative",
+            name: "OrionNative",
             dependencies: sparkleProducts,
             path: "Sources/HohohSolutionsCRMNative",
         ),

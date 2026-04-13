@@ -1,6 +1,6 @@
 #!/bin/bash
 # ╔══════════════════════════════════════════════════════════════════╗
-# ║   Nebula — macOS .pkg Builder                         ║
+# ║   Orion — macOS-installer build                       ║
 # ║   Draai dit script op je Mac om de installer te bouwen          ║
 # ║   Vereisten: macOS 11+, Xcode Command Line Tools                ║
 # ╚══════════════════════════════════════════════════════════════════╝
@@ -8,7 +8,7 @@
 set -e
 
 # Verwijder een map robuust: soms zijn bestanden read-only of (na copy/sudo) niet van jouw user.
-hohoh_clean_dir() {
+orion_clean_dir() {
   local d="$1"
   [ -e "$d" ] || return 0
   chmod -R u+w "$d" 2>/dev/null || true
@@ -27,20 +27,20 @@ BLUE='\033[0;34m'; PURPLE='\033[0;35m'; NC='\033[0m'; BOLD='\033[1m'
 
 echo ""
 echo -e "${PURPLE}${BOLD}╔══════════════════════════════════════════════╗${NC}"
-echo -e "${PURPLE}${BOLD}║   Nebula — .pkg Builder v1.0       ║${NC}"
+echo -e "${PURPLE}${BOLD}║   Orion — installer build v1.0       ║${NC}"
 echo -e "${PURPLE}${BOLD}╚══════════════════════════════════════════════╝${NC}"
 echo ""
 
 # ── Configuratie ──
-APP_NAME="Nebula"
+APP_NAME="Orion"
 BUNDLE_ID="com.hohohsolutions.crm"
 VERSION="1.0.0"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 BUILD_DIR="$ROOT/build"
 mkdir -p "$ROOT/artifacts"
-PKG_OUTPUT="$ROOT/artifacts/Nebula-v${VERSION}.pkg"
-DMG_OUTPUT="$ROOT/artifacts/Nebula-v${VERSION}.dmg"
+PKG_OUTPUT="$ROOT/artifacts/Orion-v${VERSION}.pkg"
+DMG_OUTPUT="$ROOT/artifacts/Orion-v${VERSION}.dmg"
 
 NEED_PKG=0
 NEED_DMG=0
@@ -126,7 +126,7 @@ echo -e "${GREEN}✓ Webapp build: $WEBAPP_DIR/dist${NC}"
 
 # ── Stap 4: Build directories aanmaken ──
 echo -e "${BLUE}▸ Build omgeving voorbereiden...${NC}"
-hohoh_clean_dir "$BUILD_DIR"
+orion_clean_dir "$BUILD_DIR"
 mkdir -p "$BUILD_DIR/payload/Applications/${APP_NAME}.app/Contents/MacOS"
 mkdir -p "$BUILD_DIR/payload/Applications/${APP_NAME}.app/Contents/Resources"
 mkdir -p "$BUILD_DIR/scripts"
@@ -138,21 +138,21 @@ export HOHOH_SKIP_WEB_BUILD=1
 "$ROOT/scripts/build-native-mac-app.sh"
 unset HOHOH_SKIP_WEB_BUILD
 
-NATIVE_BUILT="$ROOT/artifacts/Nebula Native.app"
+NATIVE_BUILT="$ROOT/artifacts/Orion Native.app"
 if [ ! -d "$NATIVE_BUILT" ]; then
   echo -e "${RED}✗ Native .app niet gevonden na build.${NC}"
   exit 1
 fi
 
 echo -e "${BLUE}▸ App bundle voor installer kopiëren als «${APP_NAME}.app»...${NC}"
-hohoh_clean_dir "$BUILD_DIR/payload/Applications/${APP_NAME}.app"
+orion_clean_dir "$BUILD_DIR/payload/Applications/${APP_NAME}.app"
 cp -R "$NATIVE_BUILT" "$BUILD_DIR/payload/Applications/${APP_NAME}.app"
 echo -e "${GREEN}✓ App bundle klaar (native, geen Safari/Chrome)${NC}"
 
 # ── Sanity check: webroot moet compleet zijn (anders: knoppen werken niet) ──
 echo -e "${BLUE}▸ Verifiëren webroot in installer payload...${NC}"
 WEBROOT="$BUILD_DIR/payload/Applications/${APP_NAME}.app/Contents/Resources/webroot"
-for f in "$WEBROOT/index.html" "$WEBROOT/crm-app.js" "$WEBROOT/invoice-pdf.js" "$WEBROOT/nebula-logo.png"; do
+for f in "$WEBROOT/index.html" "$WEBROOT/crm-app.js" "$WEBROOT/invoice-pdf.js" "$WEBROOT/orion-logo.png"; do
   if [ ! -s "$f" ]; then
     echo -e "${RED}✗ Webroot incompleet: ontbreekt/leeg: $f${NC}"
     echo -e "${YELLOW}  Dit veroorzaakt: ongestylede UI + buttons werken niet (JS/CSS 404).${NC}"
@@ -167,7 +167,7 @@ fi
 # Zichtbare kopie naast .pkg (de map build/ is makkelijk over het hoofd gezien)
 TEST_OUT="$ROOT/artifacts/Te-testen"
 mkdir -p "$TEST_OUT"
-hohoh_clean_dir "$TEST_OUT/${APP_NAME}.app"
+orion_clean_dir "$TEST_OUT/${APP_NAME}.app"
 cp -R "$BUILD_DIR/payload/Applications/${APP_NAME}.app" "$TEST_OUT/"
 echo -e "${GREEN}✓ App om direct te testen:${NC} $TEST_OUT/${APP_NAME}.app"
 
@@ -178,8 +178,10 @@ echo -e "${BLUE}▸ Installer scripts schrijven...${NC}"
 
 cat > "$BUILD_DIR/scripts/preinstall" << 'PREINSTALL'
 #!/bin/bash
-# Verwijder vorige installatie(s) — Nebula + legacy namen
+# Verwijder vorige installatie(s) — Orion + oude Nebula-namen + legacy
 for LEGACY in \
+  "/Applications/Orion.app" \
+  "/Applications/Orion Native.app" \
   "/Applications/Nebula.app" \
   "/Applications/Nebula Native.app" \
   "/Applications/HOHOSOLUTIONCRM.app" \
@@ -193,16 +195,20 @@ PREINSTALL
 cat > "$BUILD_DIR/scripts/postinstall" << 'POSTINSTALL'
 #!/bin/bash
 # Maak native binary uitvoerbaar
-if [ -f "/Applications/Nebula.app/Contents/MacOS/HohohSolutionsCRMNative" ]; then
-  chmod +x "/Applications/Nebula.app/Contents/MacOS/HohohSolutionsCRMNative"
+if [ -f "/Applications/Orion.app/Contents/MacOS/OrionNative" ]; then
+  chmod +x "/Applications/Orion.app/Contents/MacOS/OrionNative"
+elif [ -f "/Applications/Orion.app/Contents/MacOS/NebulaNative" ]; then
+  chmod +x "/Applications/Orion.app/Contents/MacOS/NebulaNative"
+elif [ -f "/Applications/Orion.app/Contents/MacOS/HohohSolutionsCRMNative" ]; then
+  chmod +x "/Applications/Orion.app/Contents/MacOS/HohohSolutionsCRMNative"
 fi
 
 # Registreer met LaunchServices
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
-  -f "/Applications/Nebula.app" 2>/dev/null || true
+  -f "/Applications/Orion.app" 2>/dev/null || true
 
 # Toon welkomstmelding
-osascript -e 'display notification "Nebula is succesvol geïnstalleerd!" with title "Installatie voltooid" subtitle "Je vindt de app in /Applications" sound name "Glass"' 2>/dev/null || true
+osascript -e 'display notification "Orion is succesvol geïnstalleerd!" with title "Installatie voltooid" subtitle "Je vindt de app in /Applications" sound name "Glass"' 2>/dev/null || true
 
 exit 0
 POSTINSTALL
@@ -233,7 +239,7 @@ cat > "$DIST_XML" << DISTXML
 <?xml version="1.0" encoding="utf-8"?>
 <installer-gui-script minSpecVersion="2">
 
-  <title>Nebula</title>
+  <title>Orion</title>
   <organization>com.hohohsolutions</organization>
   <domains enable_localSystem="true" enable_currentUserHome="false"/>
 
@@ -266,8 +272,8 @@ cat > "$DIST_XML" << DISTXML
 
   <choice id="main"
           visible="false"
-          title="Nebula"
-          description="Installeert Nebula in /Applications">
+          title="Orion"
+          description="Installeert Orion in /Applications">
     <pkg-ref id="$BUNDLE_ID"/>
   </choice>
 
@@ -285,7 +291,7 @@ RESOURCES_DIR="$BUILD_DIR/installer_resources"
 mkdir -p "$RESOURCES_DIR"
 
 cat > "$RESOURCES_DIR/readme.txt" << 'README'
-Nebula v1.0.0 — by HohohSolutions
+Orion v1.0.0 — by HohohSolutions
 ═══════════════════════════
 
 Intelligence for modern operations. Professioneel platform voor Mac (lokale app).
@@ -302,7 +308,7 @@ MODULES
 • API & Tools beheer
 
 INSTALLATIE
-De app wordt geïnstalleerd in /Applications als Nebula.app.
+De app wordt geïnstalleerd in /Applications als Orion.app.
 Dit is een echte Mac-app met eigen venster (WebKit / WKWebView). Er wordt geen
 Safari of Chrome geopend; alles draait lokaal op jouw Mac.
 
@@ -319,7 +325,7 @@ Exporteer regelmatig via "Data → Exporteer JSON".
 README
 
 cat > "$RESOURCES_DIR/license.txt" << 'LICENSE'
-NEBULA — SOFTWARELICENTIE v1.0
+ORION — SOFTWARELICENTIE v1.0
 Copyright (c) 2026 HohohSolutions. Alle rechten voorbehouden.
 
 Gebruik is toegestaan voor persoonlijk en professioneel gebruik.
@@ -332,7 +338,7 @@ cat > "$RESOURCES_DIR/welcome.rtf" << 'WELCOME'
 {\rtf1\ansi\ansicpg1252
 {\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fswiss\fcharset0 Helvetica-Bold;}
 {\colortbl;\red124\green106\blue247;\red38\green33\blue92;\red14\green14\blue16;}
-\f1\fs36\cf2 Welkom bij Nebula\
+\f1\fs36\cf2 Welkom bij Orion\
 \f0\fs22\cf0 \
 \f0\fs20 Het professionele freelance beheer platform voor Mac.\
 \
@@ -394,8 +400,8 @@ echo -e "${YELLOW}╠═══════════════════�
 echo -e "${YELLOW}║  Als je een Apple Developer ID hebt (99€/jaar):          ║${NC}"
 echo -e "${YELLOW}║                                                          ║${NC}"
 echo -e "${YELLOW}║  productsign --sign \"Developer ID Installer: JOUW NAAM\" ║${NC}"
-echo -e "${YELLOW}║    Nebula-v1.0.0.pkg                           ║${NC}"
-echo -e "${YELLOW}║    Nebula-v1.0.0-signed.pkg                    ║${NC}"
+echo -e "${YELLOW}║    Orion-v1.0.0.pkg                            ║${NC}"
+echo -e "${YELLOW}║    Orion-v1.0.0-signed.pkg                     ║${NC}"
 echo -e "${YELLOW}║                                                          ║${NC}"
 echo -e "${YELLOW}║  Zonder signing: Gatekeeper toont een waarschuwing.      ║${NC}"
 echo -e "${YELLOW}║  Gebruikers kunnen dit omzeilen via:                     ║${NC}"

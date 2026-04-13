@@ -2,7 +2,8 @@
 let db = {
   klanten: [], projecten: [], taken: [], facturen: [],
   apis: [], afspraken: [], todoLists: [], meetings: [],
-  uitgaven: [], inkomsten: []
+  uitgaven: [], inkomsten: [], peppolInbox: [],
+  artikelen: [],
 };
 
 let currentPage = 'dashboard';
@@ -133,8 +134,8 @@ function ensureLoginScreen() {
   el.id = 'admin-login-screen';
   el.innerHTML = `
     <div class="admin-login-card">
-      <h1 class="admin-login-title">Nebula</h1>
-      <p class="admin-login-sub">by HohohSolutions — log in als admin om verder te gaan.</p>
+      <h1 class="admin-login-title">Orion</h1>
+      <p class="admin-login-sub">by HohoSolutions — log in als admin om verder te gaan.</p>
       <label class="admin-login-label" for="admin-login-user">Gebruiker</label>
       <input id="admin-login-user" class="admin-login-input" value="${ADMIN_USERNAME}" autocomplete="username" />
       <label class="admin-login-label" for="admin-login-pass">Wachtwoord</label>
@@ -197,7 +198,7 @@ function requireAdmin() {
 
 function normalizeDbShape() {
   if (!db || typeof db !== 'object') db = {};
-  ['klanten','projecten','taken','facturen','apis','afspraken','todoLists','meetings','uitgaven','inkomsten'].forEach(k => {
+  ['klanten','projecten','taken','facturen','apis','afspraken','todoLists','meetings','uitgaven','inkomsten','peppolInbox','artikelen'].forEach(k => {
     if (!Array.isArray(db[k])) db[k] = [];
   });
   if (!db.roadmaps || typeof db.roadmaps !== 'object') db.roadmaps = {};
@@ -215,7 +216,7 @@ function save() {
 
 function syncInvoiceDbRef() {
   if (typeof window !== 'undefined') {
-    window.__NEBULA_DB__ = db;
+    window.__ORION_DB__ = db;
     window.__HOHOH_DB__ = db;
   }
 }
@@ -253,6 +254,8 @@ const PAGE_TITLES = {
   todo: 'To-Do Lijsten',
   meetings: 'Meeting Notities',
   onderneming: 'Mijn bedrijf',
+  peppol: 'Peppol e-facturatie',
+  artikelen: 'Artikelen & voorraad',
 };
 
 function syncBottomNav(pageName) {
@@ -312,14 +315,19 @@ function toggleMobileSearch() {
 
 const BRANDING_KEYS = ['companyName', 'addressLine', 'vat', 'accountHolder', 'iban', 'ibanCompact', 'email', 'phone', 'logoPath', 'legalNote0Btw'];
 
+function invoiceBrandingRaw() {
+  return (
+    localStorage.getItem('orion_invoice_branding') ||
+    localStorage.getItem('nebula_invoice_branding') ||
+    localStorage.getItem('hohoh_invoice_branding') ||
+    '{}'
+  );
+}
+
 function loadBrandingForm() {
   let stored = {};
   try {
-    stored = JSON.parse(
-      localStorage.getItem('nebula_invoice_branding') ||
-      localStorage.getItem('hohoh_invoice_branding') ||
-      '{}'
-    );
+    stored = JSON.parse(invoiceBrandingRaw());
   } catch { /* ignore */ }
   BRANDING_KEYS.forEach((key) => {
     const el = document.getElementById('br-' + key);
@@ -336,13 +344,9 @@ function saveBranding() {
   });
   if (!obj.ibanCompact && obj.iban) obj.ibanCompact = obj.iban.replace(/\s/g, '');
   try {
-    const prev = JSON.parse(
-      localStorage.getItem('nebula_invoice_branding') ||
-      localStorage.getItem('hohoh_invoice_branding') ||
-      '{}'
-    );
+    const prev = JSON.parse(invoiceBrandingRaw());
     const merged = { ...prev, ...obj };
-    localStorage.setItem('nebula_invoice_branding', JSON.stringify(merged));
+    localStorage.setItem('orion_invoice_branding', JSON.stringify(merged));
     try { localStorage.setItem('hohoh_invoice_branding', JSON.stringify(merged)); } catch { /* ignore */ }
     toast('✓ Bedrijfs- en factuurgegevens opgeslagen (PDF-facturen)');
   } catch {
@@ -389,6 +393,11 @@ function openModal(id) {
   }
   if (id === 'modal-taak') populateProjectSelect();
   if (id === 'modal-factuur') openFacModal();
+  if (id === 'modal-artikel') {
+    const t = document.getElementById('modal-artikel-title');
+    if (t) t.textContent = editId ? 'Artikel bewerken' : 'Nieuw artikel';
+    if (!editId) clearForm('modal-artikel');
+  }
   document.getElementById(id).classList.add('open');
 }
 
@@ -528,6 +537,10 @@ function saveKlant() {
   closeModal('modal-klant');
   render();
   toast('✓ Klant opgeslagen');
+  setTimeout(() => {
+    const client = getPeppolClient();
+    if (client) refreshKlantPeppolStatus(obj.id, true).then(() => { render(); }).catch(() => {});
+  }, 0);
 }
 
 function saveProject() {
@@ -600,6 +613,8 @@ function saveFactuur() {
     attachments: facAttachments.map((a) => ({ ...a }))
   };
   if (!obj.num || !obj.klantId) { toast('❌ Vul nummer en klant in'); return; }
+  const block = validateFactuurForDefinitiveStatus(obj);
+  if (block && obj.status !== 'concept') { toast('❌ ' + block); return; }
   upsert('facturen', obj);
   closeModal('modal-factuur');
   render();
@@ -621,7 +636,61 @@ function saveApi() {
   toast('✓ Opgeslagen');
 }
 
+function parseNumLoose(s) {
+  const n = parseFloat(String(s || '').replace(/\s/g, '').replace(',', '.'));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function saveArtikel() {
+  const naam = v('art-naam').trim();
+  if (!naam) { toast('❌ Vul artikelnaam in'); return; }
+  const prev = editId ? db.artikelen.find((a) => a.id === editId) : null;
+  const obj = {
+    id: editId || uid(),
+    sku: v('art-sku').trim(),
+    naam,
+    eenheid: v('art-eenheid').trim() || 'st',
+    voorraad: parseNumLoose(v('art-voorraad')),
+    minVoorraad: parseNumLoose(v('art-min')),
+    verkoopprijs: parseNumLoose(v('art-prijs')),
+    btwPct: parseFloat(v('art-btw')) || 21,
+    omschrijving: v('art-omsch'),
+    datum: prev?.datum || today(),
+  };
+  upsert('artikelen', obj);
+  closeModal('modal-artikel');
+  render();
+  toast('✓ Artikel opgeslagen');
+}
+
+function editArtikel(id) {
+  const a = db.artikelen.find((x) => x.id === id);
+  if (!a) return;
+  editId = id;
+  set('art-sku', a.sku);
+  set('art-naam', a.naam);
+  set('art-eenheid', a.eenheid);
+  set('art-voorraad', a.voorraad);
+  set('art-min', a.minVoorraad);
+  set('art-prijs', a.verkoopprijs);
+  set('art-btw', a.btwPct);
+  set('art-omsch', a.omschrijving);
+  openModal('modal-artikel');
+}
+
+async function delArtikel(id) {
+  await del('artikelen', id);
+}
+
 function v(id) { return (document.getElementById(id)||{}).value || ''; }
+
+function escHtml(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
 function upsert(col, obj) {
   const idx = db[col].findIndex(r => r.id === obj.id);
@@ -659,7 +728,8 @@ function statusBadge(s) {
     voltooid: 'badge-blue', pauze: 'badge-amber', concept: 'badge-gray',
     openstaand: 'badge-amber', betaald: 'badge-green', vervallen: 'badge-red',
     productie: 'badge-accent', staging: 'badge-amber', development: 'badge-blue',
-    hoog: 'badge-red', normaal: 'badge-gray', laag: 'badge-blue'
+    hoog: 'badge-red', normaal: 'badge-gray', laag: 'badge-blue',
+    peppol_sent: 'badge-peppol-sent', peppol_failed: 'badge-peppol-failed', peppol_none: 'badge-gray', peppol_registered: 'badge-peppol-ok'
   };
   return `<span class="badge ${map[s]||'badge-gray'}">${s}</span>`;
 }
@@ -687,6 +757,8 @@ function render() {
     renderAgendaUpcoming();
   }
   if (currentPage === 'financieel') renderFinancieel();
+  if (currentPage === 'peppol') renderPeppolPage();
+  if (currentPage === 'artikelen') renderArtikelen();
   runAutomaticFollowupEngine();
   updateAddButtonVisibility();
   syncBottomNav(currentPage);
@@ -694,6 +766,9 @@ function render() {
 
 function updateBadges() {
   document.getElementById('badge-klanten').textContent = db.klanten.length;
+  const bp = document.getElementById('badge-peppol'); if (bp) bp.textContent = String((db.peppolInbox||[]).length);
+  const ba = document.getElementById('badge-artikelen');
+  if (ba) ba.textContent = String((db.artikelen || []).length);
   document.getElementById('badge-projecten').textContent = db.projecten.filter(p=>p.status==='actief').length;
   document.getElementById('badge-taken').textContent = db.taken.filter(t=>!t.done).length;
   const openTodo = (db.todoLists || []).reduce((s,l)=>(l.items||[]).filter(i=>!i.done).length+s,0);
@@ -707,6 +782,19 @@ function renderDashboard() {
   document.getElementById('stat-taken').textContent = db.taken.filter(t=>!t.done).length;
   const open = db.facturen.filter(f=>f.status==='openstaand').reduce((s,f)=>s+(f.totaal||0),0);
   document.getElementById('stat-facturen').textContent = '€' + open.toLocaleString('nl-BE', {minimumFractionDigits:0});
+
+  const statArt = document.getElementById('stat-artikelen');
+  const statArtSub = document.getElementById('stat-artikelen-sub');
+  if (statArt) {
+    const n = (db.artikelen || []).length;
+    statArt.textContent = String(n);
+    if (statArtSub) {
+      const low = (db.artikelen || []).filter(
+        (a) => (a.minVoorraad || 0) > 0 && (a.voorraad || 0) <= (a.minVoorraad || 0)
+      ).length;
+      statArtSub.textContent = low ? `${low} onder minimumvoorraad` : 'in catalogus';
+    }
+  }
 
   // Recent klanten
   const rk = document.getElementById('recent-klanten');
@@ -745,11 +833,78 @@ function renderDashboard() {
     </div>`).join('') : '<div class="empty"><div class="empty-icon">◇</div><div class="empty-text">Geen projecten</div></div>';
 }
 
+
+function emptyStateCard(title, sub, ctaLabel, ctaAction, extra='') {
+  return `<div class="empty">
+    <div class="empty-icon">${extra || '✦'}</div>
+    <div class="empty-text">${title}</div>
+    ${sub ? `<div class="empty-sub">${sub}</div>` : ''}
+    ${ctaLabel ? `<button type="button" class="btn btn-primary" style="margin-top:10px" onclick="${ctaAction}">${ctaLabel}</button>` : ''}
+  </div>`;
+}
+
+function loadDemoData() {
+  if (!requireAdmin()) return;
+  const klanten = [
+    {id:uid(),voornaam:'Sophie',achternaam:'Vermeulen',bedrijf:'Vermeulen Studio BV',btw:'BE0745123987',email:'sophie@vermeulenstudio.be',tel:'+32477111222',sector:'Design',status:'actief',adres:'Keizerstraat 11, 2000 Antwerpen',website:'https://vermeulenstudio.be',notities:'UI/branding klant',datum:today()},
+    {id:uid(),voornaam:'Tom',achternaam:'Janssens',bedrijf:'Janssens Logistics NV',btw:'BE0441797980',email:'tom@janssenslogistics.be',tel:'+32477111333',sector:'Logistiek',status:'actief',adres:'Havenlaan 2, 9000 Gent',website:'https://janssenslogistics.be',notities:'ERP integratie',datum:today()},
+    {id:uid(),voornaam:'Amina',achternaam:'El Khatib',bedrijf:'AK Consulting',btw:'BE0834123456',email:'amina@akconsulting.be',tel:'+32477111444',sector:'Consultancy',status:'prospect',adres:'Louizalaan 77, 1000 Brussel',website:'',notities:'Offerte in voorbereiding',datum:today()},
+    {id:uid(),voornaam:'Pieter',achternaam:'De Smet',bedrijf:'De Smet Elektro',btw:'BE0678091234',email:'pieter@desmetelektro.be',tel:'+32477111555',sector:'Elektro',status:'actief',adres:'Stationsstraat 45, 2800 Mechelen',website:'',notities:'Onderhoudscontract',datum:today()},
+    {id:uid(),voornaam:'Lena',achternaam:'Claes',bedrijf:'Claes Events BV',btw:'BE0755091234',email:'lena@claesevents.be',tel:'+32477111666',sector:'Events',status:'inactief',adres:'Markt 8, 3000 Leuven',website:'https://claesevents.be',notities:'Seizoensprojecten',datum:today()},
+    {id:uid(),voornaam:'Bram',achternaam:'Peeters',bedrijf:'Peeters Construct',btw:'BE0534123987',email:'bram@peetersconstruct.be',tel:'+32477111777',sector:'Bouw',status:'actief',adres:'Industrieweg 12, 3500 Hasselt',website:'',notities:'Facturatie maandelijks',datum:today()}
+  ];
+  const projecten = [
+    {id:uid(),naam:'Website relaunch',klantId:klanten[0].id,status:'actief',budget:12000,start:today(),deadline:today(),progress:35,desc:'Nieuwe site + lead funnel',tags:['web','design'],datum:today()},
+    {id:uid(),naam:'ERP koppeling',klantId:klanten[1].id,status:'actief',budget:28000,start:today(),deadline:today(),progress:52,desc:'API integratie',tags:['api','erp'],datum:today()},
+    {id:uid(),naam:'Sales dashboard',klantId:klanten[2].id,status:'concept',budget:6500,start:today(),deadline:today(),progress:10,desc:'KPI dashboard',tags:['dashboard'],datum:today()},
+    {id:uid(),naam:'Planning app',klantId:klanten[3].id,status:'pauze',budget:9400,start:today(),deadline:today(),progress:65,desc:'Mobiele planning',tags:['mobile'],datum:today()}
+  ];
+  const facturen = [
+    {id:uid(),type:'factuur',num:'2026-0001',klantId:klanten[0].id,projectId:projecten[0].id,desc:'Design & setup',lines:[{omschrijving:'Design',aantal:1,prijs:1500,subtotaal:1500}],excl:1500,btwPct:21,btwBedrag:315,totaal:1815,datum:today(),verval:today(),termijn:'30',status:'betaald',ref:'PO-001',betaalwijze:'overschrijving',note:'',attachments:[]},
+    {id:uid(),type:'factuur',num:'2026-0002',klantId:klanten[1].id,projectId:projecten[1].id,desc:'API sprint 1',lines:[{omschrijving:'Sprint',aantal:1,prijs:2800,subtotaal:2800}],excl:2800,btwPct:21,btwBedrag:588,totaal:3388,datum:today(),verval:today(),termijn:'30',status:'openstaand',ref:'PO-002',betaalwijze:'overschrijving',note:'',attachments:[]},
+    {id:uid(),type:'voorschot',num:'2026-0003',klantId:klanten[2].id,projectId:projecten[2].id,desc:'Voorschot analyse',lines:[{omschrijving:'Analyse',aantal:1,prijs:1000,subtotaal:1000}],excl:1000,btwPct:21,btwBedrag:210,totaal:1210,datum:today(),verval:today(),termijn:'30',status:'deels-betaald',ref:'PO-003',betaalwijze:'overschrijving',note:'',attachments:[]},
+    {id:uid(),type:'factuur',num:'2026-0004',klantId:klanten[3].id,projectId:projecten[3].id,desc:'Onderhoud',lines:[{omschrijving:'Onderhoud',aantal:1,prijs:780,subtotaal:780}],excl:780,btwPct:21,btwBedrag:163.8,totaal:943.8,datum:today(),verval:today(),termijn:'30',status:'vervallen',ref:'PO-004',betaalwijze:'overschrijving',note:'',attachments:[]},
+    {id:uid(),type:'factuur',num:'2026-0005',klantId:klanten[4].id,projectId:'',desc:'Event support',lines:[{omschrijving:'Support',aantal:1,prijs:500,subtotaal:500}],excl:500,btwPct:21,btwBedrag:105,totaal:605,datum:today(),verval:today(),termijn:'30',status:'concept',ref:'PO-005',betaalwijze:'overschrijving',note:'',attachments:[]},
+    {id:uid(),type:'creditnota',num:'2026-0006',klantId:klanten[5].id,projectId:'',desc:'Correctie',lines:[{omschrijving:'Correctie',aantal:1,prijs:200,subtotaal:200}],excl:200,btwPct:21,btwBedrag:42,totaal:242,datum:today(),verval:today(),termijn:'0',status:'concept',ref:'PO-006',betaalwijze:'overschrijving',note:'',attachments:[]},
+    {id:uid(),type:'factuur',num:'2026-0007',klantId:klanten[0].id,projectId:projecten[0].id,desc:'SEO setup',lines:[{omschrijving:'SEO',aantal:1,prijs:900,subtotaal:900}],excl:900,btwPct:21,btwBedrag:189,totaal:1089,datum:today(),verval:today(),termijn:'30',status:'betaald',ref:'PO-007',betaalwijze:'overschrijving',note:'',attachments:[]},
+    {id:uid(),type:'factuur',num:'2026-0008',klantId:klanten[1].id,projectId:projecten[1].id,desc:'API sprint 2',lines:[{omschrijving:'Sprint',aantal:1,prijs:3200,subtotaal:3200}],excl:3200,btwPct:21,btwBedrag:672,totaal:3872,datum:today(),verval:today(),termijn:'30',status:'openstaand',ref:'PO-008',betaalwijze:'overschrijving',note:'',attachments:[]}
+  ];
+  const taken = [
+    'Kickoff meeting voorbereiden','Contract laten tekenen','Peppol credentials vragen','Factuur #2026-0002 opvolgen','Kanban kolommen updaten','Roadmap sprint 2 plannen','API documentatie afronden','Klantfeedback verwerken','Test op iPhone','Backup export draaien','SEO copy finaliseren','Demo call inplannen'
+  ].map((naam,i)=>({id:uid(),naam,klantId:klanten[i%klanten.length].id,projectId:projecten[i%projecten.length].id,prio:i%3===0?'hoog':(i%3===1?'normaal':'laag'),deadline:today(),note:'Demo-taak',done:i%4===0,datum:today()}));
+  const afspraken = [
+    {id:uid(),naam:'Kickoff Vermeulen Studio',datum:today(),tijd:'09:30',type:'meeting',klantId:klanten[0].id,projectId:projecten[0].id,locatie:'Teams',note:'Doelen project'},
+    {id:uid(),naam:'ERP review',datum:today(),tijd:'13:00',type:'afspraak',klantId:klanten[1].id,projectId:projecten[1].id,locatie:'Gent kantoor',note:'Scope sprint 2'},
+    {id:uid(),naam:'Facturatie check',datum:today(),tijd:'16:00',type:'deadline',klantId:klanten[2].id,projectId:projecten[2].id,locatie:'',note:'Openstaande posten'}
+  ];
+  db.klanten = klanten;
+  db.projecten = projecten;
+  db.facturen = facturen;
+  db.taken = taken;
+  db.afspraken = afspraken;
+  db.artikelen = [
+    { id: uid(), sku: 'SRV-001', naam: 'Consultancy uur', eenheid: 'u', voorraad: 0, minVoorraad: 0, verkoopprijs: 95, btwPct: 21, omschrijving: 'Intern — niet fysiek', datum: today() },
+    { id: uid(), sku: 'HW-SSD-1TB', naam: 'SSD NVMe 1TB', eenheid: 'st', voorraad: 12, minVoorraad: 3, verkoopprijs: 89.9, btwPct: 21, omschrijving: 'Installatie hardware', datum: today() },
+    { id: uid(), sku: 'INK-PAP-A4', naam: 'Papier A4 80g (pak)', eenheid: 'pak', voorraad: 8, minVoorraad: 5, verkoopprijs: 6.5, btwPct: 21, omschrijving: 'Kantoor', datum: today() },
+    { id: uid(), sku: 'MERCH-TSH', naam: 'T-shirt bedrukking', eenheid: 'st', voorraad: 40, minVoorraad: 10, verkoopprijs: 18, btwPct: 21, omschrijving: 'Events', datum: today() },
+    { id: uid(), sku: 'CHEM-DILU', naam: 'Verdunner 5L', eenheid: 'st', voorraad: 2, minVoorraad: 4, verkoopprijs: 24, btwPct: 21, omschrijving: 'Bouw — test laag voorraad', datum: today() },
+    { id: uid(), sku: 'EL-KABEL', naam: 'Kabel rol 100m', eenheid: 'rol', voorraad: 6, minVoorraad: 2, verkoopprijs: 142, btwPct: 21, omschrijving: 'Elektro', datum: today() },
+  ];
+  if (!Array.isArray(db.todoLists)) db.todoLists = [];
+  if (!Array.isArray(db.meetings)) db.meetings = [];
+  if (!Array.isArray(db.apis)) db.apis = [];
+  if (!Array.isArray(db.uitgaven)) db.uitgaven = [];
+  if (!Array.isArray(db.inkomsten)) db.inkomsten = [];
+  save();
+  render();
+  toast('✓ Voorbeelddata geladen');
+}
+
 function renderKlanten(data) {
   const rows = (data || db.klanten).map(k => {
     const np = db.projecten.filter(p=>p.klantId===k.id).length;
     return `<tr onclick="openKlantDetail('${k.id}')">
-      <td><strong>${k.voornaam} ${k.achternaam}</strong></td>
+      <td><strong>${k.voornaam} ${k.achternaam}</strong> ${peppolKlantBadge(k)}</td>
       <td>${k.bedrijf || '—'}</td>
       <td class="td-mono">${k.email || '—'}</td>
       <td>${statusBadge(k.status)}</td>
@@ -759,7 +914,36 @@ function renderKlanten(data) {
     </tr>`;
   });
   document.getElementById('klanten-tbody').innerHTML = rows.join('') ||
-    `<tr><td colspan="7"><div class="empty"><div class="empty-icon">◈</div><div class="empty-text">Geen klanten gevonden</div><div class="empty-sub">Klik op + Toevoegen</div></div></td></tr>`;
+    `<tr><td colspan="7">${emptyStateCard('Nog geen klanten', 'Voeg je eerste klant toe of laad voorbeelddata.', '+ Eerste klant toevoegen', "openModal('modal-klant')", '👥')}</td></tr>`;
+}
+
+function renderArtikelen(data) {
+  const list = data || db.artikelen || [];
+  const rows = list.map((a) => {
+    const low = (a.minVoorraad || 0) > 0 && (a.voorraad || 0) <= (a.minVoorraad || 0);
+    const rowCls = low ? ' class="tr-stock-low"' : '';
+    const oms = String(a.omschrijving || '');
+    const sub = oms
+      ? `<div style="font-size:11px;color:var(--text3);margin-top:2px">${escHtml(oms.slice(0, 100))}${oms.length > 100 ? '…' : ''}</div>`
+      : '';
+    return `<tr${rowCls}>
+      <td class="td-mono">${escHtml(a.sku) || '—'}</td>
+      <td><strong>${escHtml(a.naam)}</strong>${sub}</td>
+      <td class="td-mono">${escHtml(a.eenheid) || 'st'}</td>
+      <td class="td-mono">${Number(a.voorraad || 0).toLocaleString('nl-BE')}</td>
+      <td class="td-mono">${Number(a.minVoorraad || 0).toLocaleString('nl-BE')}</td>
+      <td class="td-mono">€${Number(a.verkoopprijs || 0).toLocaleString('nl-BE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+      <td class="td-mono">${Number(a.btwPct ?? 21)}%</td>
+      <td onclick="event.stopPropagation()">
+        <button type="button" class="btn btn-ghost" style="padding:4px 8px;font-size:12px" onclick="editArtikel('${a.id}')">✎</button>
+        <button type="button" class="btn btn-ghost" style="padding:4px 8px;font-size:12px" onclick="delArtikel('${a.id}')">🗑</button>
+      </td>
+    </tr>`;
+  });
+  const tb = document.getElementById('artikelen-tbody');
+  if (!tb) return;
+  tb.innerHTML = rows.join('') ||
+    `<tr><td colspan="8">${emptyStateCard('Nog geen artikelen', 'Leg je artikelcatalogus en voorraad aan, of laad voorbeelddata.', '+ Artikel toevoegen', "openModal('modal-artikel')", '📦')}</td></tr>`;
 }
 
 function renderProjecten(data) {
@@ -788,7 +972,7 @@ function renderProjecten(data) {
       </div>
     </div>`;
   }).join('') :
-    `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">◇</div><div class="empty-text">Geen projecten</div></div>`;
+    `<div style="grid-column:1/-1">${emptyStateCard('Nog geen projecten', 'Maak een project of laad voorbeelddata om Orion te verkennen.', '+ Nieuw project', "openModal('modal-project')", '🗂')}</div>`;
 }
 
 function filterProjecten(status, btn) {
@@ -812,7 +996,7 @@ function renderTaken(data) {
       <span style="font-size:11px;color:var(--text3)">${klantNaam(t.klantId)}</span>
       <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="event.stopPropagation();del('taken','${t.id}')">✕</button>
     </div>`).join('') :
-    `<div class="empty"><div class="empty-icon">○</div><div class="empty-text">Geen taken</div></div>`;
+    emptyStateCard('Nog geen taken', 'Maak je eerste taak met deadline en prioriteit.', '+ Eerste taak toevoegen', "openModal('modal-taak')", '✅');
 }
 
 function toggleTaak(id) {
@@ -885,12 +1069,13 @@ function renderFacturen(data) {
       <td><span class="badge badge-status-${f.status||'concept'}">${f.status||'concept'}</span></td>
       <td style="text-align:right;white-space:nowrap">
         <button type="button" class="btn btn-ghost" style="padding:3px 8px;font-size:11px" title="Download PDF" onclick="event.stopPropagation();downloadFactuurPdf('${f.id}')">PDF</button>
+        <button type="button" class="btn btn-ghost" style="padding:3px 8px;font-size:11px" title="Verstuur via Peppol" onclick="event.stopPropagation();sendFactuurViaPeppol('${f.id}')">Peppol</button>
         <button type="button" class="btn btn-ghost" style="padding:3px 8px;font-size:11px" title="Verwijderen" onclick="event.stopPropagation();del('facturen','${f.id}')">✕</button>
       </td>
     </tr>`;
   });
   document.getElementById('facturen-tbody').innerHTML = rows.join('') ||
-    `<tr><td colspan="11"><div class="empty"><div class="empty-icon">📄</div><div class="empty-text">Geen facturen gevonden</div></div></td></tr>`;
+    `<tr><td colspan="11">${emptyStateCard('Nog geen facturen', 'Stel je eerste factuur op en verstuur via PDF of Peppol.', '+ Eerste factuur opstellen', "startFactuurOpstellen('factuur')", '🧾')}</td></tr>`;
 
   const cards = list.map(f => {
     const kl = db.klanten.find(k=>k.id===f.klantId);
@@ -910,13 +1095,15 @@ function renderFacturen(data) {
       <div class="fac-mobile-row"><span>Vervaldag</span><strong>${fmt(f.verval)||'—'}</strong></div>
       <div class="fac-mobile-actions">
         <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px" onclick="event.stopPropagation();downloadFactuurPdf('${f.id}')">PDF</button>
+        <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px" onclick="event.stopPropagation();sendFactuurViaPeppol('${f.id}')">Peppol</button>
         <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px" onclick="event.stopPropagation();changeFactuurStatus('${f.id}','betaald')">Markeer betaald</button>
         <button class="btn btn-danger" style="font-size:11px;padding:5px 10px" onclick="event.stopPropagation();del('facturen','${f.id}')">Verwijder</button>
       </div>
     </div>`;
   });
   const cardsEl = document.getElementById('facturen-cards');
-  if (cardsEl) cardsEl.innerHTML = cards.join('') || `<div class="empty"><div class="empty-icon">📄</div><div class="empty-text">Geen facturen gevonden</div></div>`;
+  if (cardsEl) cardsEl.innerHTML = cards.join('') || emptyStateCard('Nog geen facturen', 'Start met een eerste factuur om omzet op te bouwen.', '+ Eerste factuur opstellen', "startFactuurOpstellen('factuur')", '🧾');
+  renderFacturenWithPeppolBadges();
 }
 
 function openFactuurDetail(id) {
@@ -992,7 +1179,15 @@ function openFactuurDetail(id) {
 
 function changeFactuurStatus(id, status) {
   const f = db.facturen.find(f=>f.id===id);
-  if (f) { f.status = status; save(); closeDetail(); render(); toast('✓ Status bijgewerkt'); }
+  if (!f) return;
+  const next = { ...f, status };
+  const block = validateFactuurForDefinitiveStatus(next);
+  if (block && status !== 'concept') { toast('❌ ' + block); return; }
+  f.status = status;
+  save();
+  closeDetail();
+  render();
+  toast('✓ Status bijgewerkt');
 }
 
 function renderApi(data) {
@@ -1292,8 +1487,8 @@ function escHtml(s) {
 }
 
 function getFollowupMailConfig() {
-  const url = (localStorage.getItem('hohoh_followup_url') || (typeof window !== 'undefined' && (window.__NEBULA_FOLLOWUP_URL__ || window.__HOHOH_FOLLOWUP_URL__)) || '').trim();
-  const secret = (localStorage.getItem('hohoh_followup_secret') || (typeof window !== 'undefined' && (window.__NEBULA_FOLLOWUP_SECRET__ || window.__HOHOH_FOLLOWUP_SECRET__)) || '').trim();
+  const url = (localStorage.getItem('hohoh_followup_url') || (typeof window !== 'undefined' && (window.__ORION_FOLLOWUP_URL__ || window.__HOHOH_FOLLOWUP_URL__)) || '').trim();
+  const secret = (localStorage.getItem('hohoh_followup_secret') || (typeof window !== 'undefined' && (window.__ORION_FOLLOWUP_SECRET__ || window.__HOHOH_FOLLOWUP_SECRET__)) || '').trim();
   return { url, secret };
 }
 
@@ -1341,7 +1536,7 @@ Hierbij een statusupdate van je project:
 We houden je op de hoogte van de volgende stap.
 
 Groeten,
-HohohSolutions`;
+HohoSolutions`;
 
   const html = `<!DOCTYPE html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;line-height:1.5;color:#1a1a1a;">
 <p>Beste ${voornaam || 'klant'},</p>
@@ -1359,7 +1554,7 @@ HohohSolutions`;
 <tr><td style="font-size:13px;color:#534ab7;padding-top:8px;font-weight:600;">${progress}%</td></tr>
 </table>
 <p style="margin-top:20px;">We houden je op de hoogte van de volgende stap.</p>
-<p>Groeten,<br><strong>HohohSolutions</strong></p>
+<p>Groeten,<br><strong>HohoSolutions</strong></p>
 </body></html>`;
 
   return { text, html };
@@ -1434,7 +1629,7 @@ Hierbij een statusupdate van je project:
 We houden je op de hoogte van de volgende stap.
 
 Groeten,
-HohohSolutions`);
+HohoSolutions`);
   window.location.href = `mailto:${k.email}?subject=${subject}&body=${body}`;
 
   p.followupLastSent = today();
@@ -2064,6 +2259,11 @@ function globalSearch(q) {
       `${f.num} ${f.desc}`.toLowerCase().includes(q)
     ));
   }
+  if (currentPage === 'artikelen') {
+    renderArtikelen((db.artikelen || []).filter((a) =>
+      `${a.sku || ''} ${a.naam || ''} ${a.omschrijving || ''}`.toLowerCase().includes(q)
+    ));
+  }
   if (currentPage === 'financieel') {
     renderFinancieel(q);
   }
@@ -2462,8 +2662,8 @@ function exportData() {
   };
   const payload = {
     version: 1,
-    product: 'Nebula',
-    vendor: 'HohohSolutions',
+    product: 'Orion',
+    vendor: 'HohoSolutions',
     exportedAt: new Date().toISOString(),
     db,
     hohohAdmin,
@@ -2471,7 +2671,7 @@ function exportData() {
   const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'nebula-export-' + today() + '.json';
+  a.download = 'orion-export-' + today() + '.json';
   a.click();
   toast('✓ Export gedownload');
 }
@@ -3532,7 +3732,7 @@ function deleteMeeting(id) {
   db.meetings = db.meetings.filter(m=>m.id!==id);
   activeMeetingId = null; save();
   renderMeetingsSidebar();
-  document.getElementById('meeting-main').innerHTML = `<div class="meeting-empty"><div class="meeting-empty-icon">📋</div><div style="font-size:14px;font-weight:700;color:var(--text2)">Selecteer een vergadering</div><button class="btn btn-primary" style="margin-top:16px" onclick="addMeeting()">+ Nieuwe vergadering</button></div>`;
+  document.getElementById('meeting-main').innerHTML = `<div class="meeting-empty"><div class="meeting-empty-icon">📋</div><div style="font-size:14px;font-weight:700;color:var(--text2)">Selecteer een meeting</div><button class="btn btn-primary" style="margin-top:16px" onclick="addMeeting()">+ Nieuwe vergadering</button></div>`;
   toast('✓ Vergadering verwijderd');
 }
 
@@ -3704,6 +3904,358 @@ function renderAgendaUpcoming() {
     </div>`).join('') : '<div style="color:var(--text3);font-size:13px">Geen aankomende items</div>';
 }
 
+
+
+// ─── PEPPOL INTEGRATION ─────────────────────────────────────────────────────
+const PEPPOL_SETTINGS_KEY = 'orion_peppol_config';
+const PEPPOL_STATUS_CACHE_KEY = 'orion_peppol_status_cache';
+/** Zout niet wijzigen — bestaande versleutelde Peppol-keys in localStorage blijven bruikbaar. */
+const PEPPOL_KEY_SALT = 'nebula::peppol::2026';
+
+function peppolSimpleKey() {
+  const seed = (localStorage.getItem(ADMIN_PASSWORD_KEY) || ADMIN_DEFAULT_PASSWORD) + '|' + PEPPOL_KEY_SALT;
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) { h ^= seed.charCodeAt(i); h += (h<<1)+(h<<4)+(h<<7)+(h<<8)+(h<<24); }
+  return (h >>> 0).toString(16);
+}
+
+function peppolEncrypt(text) {
+  const k = peppolSimpleKey();
+  let out = '';
+  for (let i = 0; i < text.length; i++) out += String.fromCharCode(text.charCodeAt(i) ^ k.charCodeAt(i % k.length));
+  return btoa(unescape(encodeURIComponent(out)));
+}
+
+function peppolDecrypt(enc) {
+  try {
+    const raw = decodeURIComponent(escape(atob(enc)));
+    const k = peppolSimpleKey();
+    let out = '';
+    for (let i = 0; i < raw.length; i++) out += String.fromCharCode(raw.charCodeAt(i) ^ k.charCodeAt(i % k.length));
+    return out;
+  } catch { return ''; }
+}
+
+function loadPeppolSettings() {
+  try {
+    const raw =
+      localStorage.getItem(PEPPOL_SETTINGS_KEY) ||
+      localStorage.getItem('nebula_peppol_config') ||
+      localStorage.getItem('nebula_peppol_settings_v1') ||
+      '{}';
+    const parsed = JSON.parse(raw);
+    if (parsed.apiKeyEnc) parsed.apiKey = peppolDecrypt(parsed.apiKeyEnc);
+    if (parsed.apiSecretEnc) parsed.apiSecret = peppolDecrypt(parsed.apiSecretEnc);
+    return parsed;
+  } catch { return {}; }
+}
+
+function savePeppolSettings() {
+  if (!requireAdmin()) return;
+  const obj = {
+    sandbox: ((document.getElementById('peppol-sandbox')||{}).value || '1') === '1',
+    webhookUrl: v('peppol-webhook').trim(),
+    ownKbo: v('peppol-own-kbo').replace(/\D/g, ''),
+    ownEmail: v('peppol-own-email').trim(),
+    updatedAt: new Date().toISOString(),
+  };
+  const key = v('peppol-api-key').trim();
+  const secret = v('peppol-api-secret').trim();
+  if (key) obj.apiKeyEnc = peppolEncrypt(key);
+  if (secret) obj.apiSecretEnc = peppolEncrypt(secret);
+  localStorage.setItem(PEPPOL_SETTINGS_KEY, JSON.stringify(obj));
+  const st = document.getElementById('peppol-settings-status');
+  if (st) st.textContent = '✓ opgeslagen';
+  toast('✓ Peppol instellingen opgeslagen');
+}
+
+function hydratePeppolSettingsForm() {
+  const ps = loadPeppolSettings();
+  set('peppol-api-key', ps.apiKey || '');
+  set('peppol-api-secret', ps.apiSecret || '');
+  set('peppol-sandbox', ps.sandbox === false ? '0' : '1');
+  set('peppol-webhook', ps.webhookUrl || '');
+  set('peppol-own-kbo', ps.ownKbo || '');
+  set('peppol-own-email', ps.ownEmail || '');
+}
+
+function getPeppolClient() {
+  const ps = loadPeppolSettings();
+  if (!ps.apiKey || !ps.apiSecret) return null;
+  if (typeof window.OrionPeppol !== 'function') return null;
+  return new window.OrionPeppol({ apiKey: ps.apiKey, apiSecret: ps.apiSecret, sandbox: ps.sandbox !== false, webhookUrl: ps.webhookUrl || null, onLog: () => {} });
+}
+
+function peppolKlantBadge(k) {
+  const st = ((k && k.peppol) ? k.peppol.status : '') || 'unknown';
+  if (st === 'registered') return '<span class="badge badge-peppol-ok" style="margin-left:6px">PEPPOL ✓</span>';
+  if (st === 'missing') return '<span class="badge badge-gray" style="margin-left:6px">GEEN PEPPOL</span>';
+  return '<span class="badge badge-gray" style="margin-left:6px">PEPPOL ?</span>';
+}
+
+function loadPeppolStatusCache() {
+  try { return JSON.parse(localStorage.getItem(PEPPOL_STATUS_CACHE_KEY) || '{}'); } catch { return {}; }
+}
+
+function savePeppolStatusCache(map) {
+  localStorage.setItem(PEPPOL_STATUS_CACHE_KEY, JSON.stringify(map || {}));
+}
+
+async function refreshKlantPeppolStatus(klantId, force = false) {
+  const k = db.klanten.find(x => x.id === klantId);
+  if (!k) return null;
+  const vat = String(k.btw || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  const kbo = vat.startsWith('BE') ? vat.slice(2) : String(k.kbo || '').replace(/\D/g, '');
+  if (!kbo && !vat) return null;
+  const key = (kbo || vat).toLowerCase();
+  const cache = loadPeppolStatusCache();
+  const now = Date.now();
+  const dayMs = 24 * 3600 * 1000;
+  if (!force && cache[key] && now - (cache[key].ts || 0) < dayMs) {
+    k.peppol = cache[key].data;
+    return cache[key].data;
+  }
+  const client = getPeppolClient();
+  if (!client) return null;
+  const result = await client.checkBelgianCompany(kbo || '', vat || '');
+  const data = result && result.found
+    ? { status: 'registered', peppolId: result.peppolId, checkedAt: new Date().toISOString() }
+    : { status: 'missing', peppolId: null, checkedAt: new Date().toISOString() };
+  k.peppol = data;
+  cache[key] = { ts: now, data };
+  savePeppolStatusCache(cache);
+  save();
+  return data;
+}
+
+function buildPeppolInvoiceData(f) {
+  const b = JSON.parse(invoiceBrandingRaw());
+  const kl = db.klanten.find(k => k.id === f.klantId) || {};
+  const sellerVat = String(b.vat || '').trim();
+  const sellerKbo = sellerVat.replace(/\D/g, '').replace(/^BE/i, '').replace(/^0?/, '0').slice(-10);
+  const buyerVat = String(kl.btw || '').replace(/\s/g, '').toUpperCase();
+  const buyerKbo = buyerVat.replace(/^BE/i, '').replace(/\D/g, '').slice(-10);
+  return {
+    invoiceNumber: f.num,
+    issueDate: f.datum || today(),
+    dueDate: f.verval || today(),
+    invoiceTypeCode: (f.type === 'creditnota' ? '381' : '380'),
+    currencyCode: 'EUR',
+    note: f.note || '',
+    buyerReference: f.ref || '',
+    seller: {
+      name: b.companyName || 'Orion',
+      vatNumber: sellerVat || 'BE0000000000',
+      kboNumber: sellerKbo || '0000000000',
+      street: (b.addressLine || 'Adres onbekend').split(',')[0],
+      city: 'Brussel',
+      postalCode: '1000',
+      country: 'BE',
+      email: b.email || '',
+      phone: b.phone || '',
+      iban: b.iban || '',
+      bic: '',
+    },
+    buyer: {
+      name: (kl.bedrijf || `${kl.voornaam || ''} ${kl.achternaam || ''}`).trim() || 'Klant',
+      vatNumber: buyerVat || 'BE0000000000',
+      kboNumber: buyerKbo || '0000000000',
+      street: (kl.adres || 'Adres onbekend').split(',')[0],
+      city: 'Onbekend',
+      postalCode: '0000',
+      country: 'BE',
+      email: kl.email || '',
+    },
+    lines: (f.lines || []).map((l) => ({
+      description: l.omschrijving || 'Dienst',
+      quantity: Number(l.aantal || 1),
+      unitCode: 'C62',
+      unitPrice: Number(l.prijs || 0),
+      vatRate: Number(f.btwPct || 21),
+    })),
+    paymentTerms: { note: `Betaling binnen ${f.termijn || 30} dagen na factuurdatum.` },
+  };
+}
+
+function validateBelgianIban(iban) {
+  const c = String(iban || '').replace(/\s/g, '').toUpperCase();
+  return /^BE\d{14}$/.test(c);
+}
+
+function validateStructuredReference(ref) {
+  const r = String(ref || '').replace(/[^0-9]/g, '');
+  if (r.length !== 12) return false;
+  const base = parseInt(r.slice(0, 10), 10);
+  const cd = parseInt(r.slice(10), 10);
+  let m = base % 97; if (m === 0) m = 97;
+  return cd === m;
+}
+
+function validateFactuurForDefinitiveStatus(f) {
+  const definitive = ['openstaand', 'deels-betaald', 'betaald', 'vervallen'];
+  if (!definitive.includes(f.status)) return '';
+  if (!window.OrionUBL || typeof window.OrionUBL.validateInvoiceData !== 'function') return '';
+  const data = buildPeppolInvoiceData(f);
+  const errs = window.OrionUBL.validateInvoiceData(data);
+  if (errs.length) return `Factuurvalidatie: ${errs[0]}`;
+  const b = JSON.parse(invoiceBrandingRaw());
+  if (!validateBelgianIban(b.iban || '')) return 'Ongeldige Belgische IBAN in Mijn bedrijf';
+  const sr = (window.OrionUBL.generateStructuredReference ? window.OrionUBL.generateStructuredReference(f.num) : '');
+  if (sr && !validateStructuredReference(sr)) return 'Gestructureerde mededeling ongeldig (modulo 97)';
+  return '';
+}
+
+async function peppolTestConnection() {
+  const client = getPeppolClient();
+  if (!client) { toast('❌ Vul eerst Digiteal API key/secret in'); return; }
+  const kbo = v('peppol-own-kbo').replace(/\D/g, '') || '0123456789';
+  const rs = await client.checkBelgianCompany(kbo, 'BE' + kbo);
+  const ok = !!(rs && (rs.success || rs.found !== undefined));
+  const st = document.getElementById('peppol-settings-status');
+  if (st) st.textContent = ok ? '✓ verbinding OK' : '❌ verbinding mislukt';
+  toast(ok ? '✓ Peppol verbinding werkt' : '❌ Peppol test mislukt');
+}
+
+async function peppolRegisterSelf() {
+  const client = getPeppolClient();
+  if (!client) { toast('❌ Vul eerst Digiteal API key/secret in'); return; }
+  const kbo = v('peppol-own-kbo').replace(/\D/g, '');
+  const email = v('peppol-own-email').trim();
+  if (!kbo || !email) { toast('❌ Vul eigen KBO en e-mail in'); return; }
+      const r = await client.registerParticipant({ kboNumber: kbo, contactEmail: email, contactFirstName: 'Orion', contactLastName: 'Admin', language: 'NL' });
+  if (r.success) toast('✓ Registratie als Peppol deelnemer gestart/ok');
+  else toast('❌ Registratie mislukt: ' + (r.error || 'onbekend'));
+}
+
+async function sendFactuurViaPeppol(id) {
+  const f = db.facturen.find(x => x.id === id);
+  if (!f) return;
+  const client = getPeppolClient();
+  if (!client) { toast('❌ Peppol niet geconfigureerd (Instellingen > Peppol)'); return; }
+  const k = db.klanten.find(x => x.id === f.klantId);
+  if (!k) { toast('❌ Geen klant gekoppeld aan factuur'); return; }
+  const st = await refreshKlantPeppolStatus(k.id, true);
+  if (!st || st.status !== 'registered') {
+    f.peppol = { status: 'failed', error: 'Ontvanger niet op Peppol', at: new Date().toISOString() };
+    save(); render();
+    toast('⚠ Ontvanger niet op Peppol. Stuur voorlopig via e-mail.');
+    return;
+  }
+  const invoiceData = buildPeppolInvoiceData(f);
+  const errs = window.OrionUBL.validateInvoiceData(invoiceData);
+  if (errs.length) { toast('❌ ' + errs[0]); return; }
+  const flow = await window.sendInvoiceFlow(client, invoiceData, window.OrionUBL);
+  if (flow.success) {
+    f.peppol = { status: 'sent', documentId: flow.documentId || '', sentAt: new Date().toISOString(), peppolId: st.peppolId || '' };
+    save(); render();
+    toast('✓ Verstuurd via Peppol');
+  } else {
+    f.peppol = { status: 'failed', error: (flow.errors || []).join('; ') || 'Onbekende fout', at: new Date().toISOString() };
+    save(); render();
+    toast('❌ Peppol fout: ' + (f.peppol.error || 'onbekend'));
+  }
+}
+
+async function peppolPullInbox() {
+  const client = getPeppolClient();
+  if (!client) { toast('❌ Peppol niet geconfigureerd'); return; }
+  const r = await client.getInboundDocuments({ limit: 50 });
+  if (!r.success) { toast('❌ Inbox ophalen mislukt'); return; }
+  const docs = Array.isArray(r.data) ? r.data : (r.data && r.data.items) ? r.data.items : [];
+  db.peppolInbox = docs.map((d) => ({
+    id: d.id || uid(),
+    from: d.sender || d.from || 'Onbekend',
+    peppolId: d.senderPeppolId || d.peppolId || '',
+    issueDate: d.issueDate || '',
+    amount: Number(d.amount || d.total || 0),
+    currency: d.currency || 'EUR',
+    status: d.status || 'new',
+    xmlId: d.id || '',
+    processed: false,
+    matchedKlantId: matchKlantByPeppolDoc(d),
+  }));
+  save();
+  renderPeppolPage();
+  toast('✓ Peppol inbox bijgewerkt');
+}
+
+function matchKlantByPeppolDoc(doc) {
+  const val = String(doc.senderVat || doc.vatNumber || '').replace(/\s/g, '').toUpperCase();
+  if (!val) return '';
+  const k = db.klanten.find((x) => String(x.btw || '').replace(/\s/g, '').toUpperCase() === val);
+  return k ? k.id : '';
+}
+
+async function peppolDownloadInboxXml(id) {
+  const client = getPeppolClient();
+  if (!client) { toast('❌ Peppol niet geconfigureerd'); return; }
+  const item = (db.peppolInbox || []).find(x => x.id === id);
+  if (!item) return;
+  const r = await client.getDocument(item.xmlId || id);
+  if (!r.success) { toast('❌ XML ophalen mislukt'); return; }
+  const xml = typeof r.data === 'string' ? r.data : JSON.stringify(r.data, null, 2);
+  const blob = new Blob([xml], { type: 'application/xml' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `peppol-inbound-${id}.xml`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 800);
+}
+
+function peppolMarkInboxProcessed(id) {
+  const item = (db.peppolInbox || []).find(x => x.id === id);
+  if (!item) return;
+  item.processed = !item.processed;
+  item.status = item.processed ? 'processed' : 'new';
+  save();
+  renderPeppolPage();
+}
+
+function peppolFactuurBadge(f) {
+  const p = f && f.peppol ? f.peppol : null;
+  if (!p || !p.status) return '<span class="badge badge-gray">GEEN PEPPOL</span>';
+  if (p.status === 'sent' || p.status === 'delivered') return '<span class="badge badge-peppol-sent">VERSTUURD VIA PEPPOL</span>';
+  if (p.status === 'failed') return '<span class="badge badge-peppol-failed">PEPPOL FOUT</span>';
+  return '<span class="badge badge-gray">PEPPOL ' + p.status + '</span>';
+}
+
+function renderPeppolPage() {
+  hydratePeppolSettingsForm();
+  const all = db.facturen || [];
+  const sent = all.filter(f => f.peppol && (f.peppol.status === 'sent' || f.peppol.status === 'delivered')).length;
+  const failed = all.filter(f => f.peppol && f.peppol.status === 'failed').length;
+  const inbox = db.peppolInbox || [];
+  const setT = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setT('peppol-stat-sent', String(sent));
+  setT('peppol-stat-failed', String(failed));
+  setT('peppol-stat-inbox', String(inbox.length));
+  setT('peppol-stat-sync', inbox.length ? fmt(today()) : '—');
+  const list = document.getElementById('peppol-inbox-list');
+  if (list) {
+    list.innerHTML = inbox.length ? inbox.map((x) => `
+      <div class="api-entry" style="align-items:flex-start">
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700">${x.from || 'Onbekend'} ${x.matchedKlantId ? '<span class="badge badge-peppol-ok" style="margin-left:8px">GEMATCHT</span>' : ''}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:3px">${x.peppolId || '—'} · ${x.issueDate || '—'} · €${Number(x.amount||0).toLocaleString('nl-BE', { minimumFractionDigits: 2 })}</div>
+        </div>
+        <button class="btn btn-ghost" style="padding:4px 9px;font-size:11px" onclick="peppolDownloadInboxXml('${x.id}')">XML</button>
+        <button class="btn btn-ghost" style="padding:4px 9px;font-size:11px" onclick="peppolMarkInboxProcessed('${x.id}')">${x.processed ? 'Verwerkt ✓' : 'Markeer verwerkt'}</button>
+      </div>`).join('') : '<div class="empty"><div class="empty-icon">📥</div><div class="empty-text">Geen Peppol documenten</div><div class="empty-sub">Klik op Inbox verversen</div></div>';
+  }
+}
+
+function renderFacturenWithPeppolBadges() {
+  document.querySelectorAll('#facturen-tbody tr').forEach((tr) => {
+    const btn = tr.querySelector('button[title="Download PDF"]');
+    if (!btn) return;
+    const m = (btn.getAttribute('onclick') || '').match(/downloadFactuurPdf\('([^']+)'\)/);
+    if (!m) return;
+    const id = m[1];
+    const f = db.facturen.find(x => x.id === id);
+    const statusTd = tr.children[9];
+    if (statusTd && f) statusTd.innerHTML = statusBadge(f.status || 'concept') + '<div style="margin-top:4px">' + peppolFactuurBadge(f) + '</div>';
+  });
+}
 function installClickSafetyGuards() {
   const names = [
     'showPage','openAddModal','openModal','closeModal','saveKlant','saveProject','saveTaak','saveFactuur','saveApi',
@@ -3713,7 +4265,9 @@ function installClickSafetyGuards() {
     'openFinKeuzeModal','finKiesUitgave','finKiesInkomen','saveFinUitgave','saveFinInkomen',
     'delFinUitgave','delFinInkomen','openFinUitgaveModal','openFinInkomenModal','setFinJaar','updateFinUitgaveCategoryHint','showFinTab',
     'openProjectArch','openProjectDetail','editProject','editKlant','switchArchTab','saveProjectNotes',
-    'saveFollowupMailSettings','downloadFactuurPdf','toggleMobileSearch','saveBranding'
+    'saveFollowupMailSettings','downloadFactuurPdf','toggleMobileSearch','saveBranding',
+    'savePeppolSettings','peppolTestConnection','peppolRegisterSelf','peppolPullInbox','sendFactuurViaPeppol','refreshKlantPeppolStatus',
+    'saveArtikel','editArtikel','delArtikel'
   ];
   names.forEach((name) => {
     const fn = window[name];

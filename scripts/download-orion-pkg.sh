@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ╔══════════════════════════════════════════════════════════════════════════╗
-# ║  Nebula — volledige PKG / DMG downloader (SaaS release-manifest)        ║
+# ║  Orion — volledige PKG / DMG downloader (SaaS release-manifest)         ║
 # ║  macOS: haalt manifest via API of URL, downloadt, verifieert SHA-256       ║
 # ╚══════════════════════════════════════════════════════════════════════════╝
 set -euo pipefail
@@ -8,14 +8,14 @@ set -euo pipefail
 usage() {
   cat <<'EOF' >&2
 Gebruik:
-  NEBULA_API_BASE=https://api.jouwdomein.com ./scripts/download-nebula-pkg.sh [opties]
-  NEBULA_MANIFEST_URL=https://…/nebula-release-manifest.json ./scripts/download-nebula-pkg.sh
+  ORION_API_BASE=https://api.jouwdomein.com ./scripts/download-orion-pkg.sh [opties]
+  ORION_MANIFEST_URL=https://…/orion-release-manifest.json ./scripts/download-orion-pkg.sh
 
 Opties:
-  -a URL    API-basis (default: env NEBULA_API_BASE of http://127.0.0.1:4000)
+  -a URL    API-basis (default: env ORION_API_BASE of http://127.0.0.1:4000)
   -m URL    Manifest JSON direct (overschrijft API)
   -f PAD    Lokaal manifest-bestand
-  -o PAD    Uitvoerbestand (default: ./Nebula-v<VERSIE>.pkg in huidige map)
+  -o PAD    Uitvoerbestand (default: ./Orion-v<VERSIE>.pkg in huidige map)
   -t pkg|dmg|nativeZip   Artefact (default: pkg)
   -i        Open installer na download (.pkg / .dmg)
   -n        Geen SHA-256 controle (niet aanbevolen)
@@ -23,16 +23,16 @@ Opties:
   -h        Deze hulp
 
 Omgeving:
-  NEBULA_API_BASE       bv. https://api.nebula.example
-  NEBULA_MANIFEST_URL   directe URL naar nebula-release-manifest.json
-  NEBULA_MANIFEST_FILE  lokaal pad naar manifest
+  ORION_API_BASE       bv. https://api.example.com
+  ORION_MANIFEST_URL   directe URL naar orion-release-manifest.json
+  ORION_MANIFEST_FILE  lokaal pad naar manifest
 EOF
   exit 1
 }
 
-API_BASE="${NEBULA_API_BASE:-http://127.0.0.1:4000}"
-MANIFEST_URL="${NEBULA_MANIFEST_URL:-}"
-MANIFEST_FILE="${NEBULA_MANIFEST_FILE:-}"
+API_BASE="${ORION_API_BASE:-http://127.0.0.1:4000}"
+MANIFEST_URL="${ORION_MANIFEST_URL:-}"
+MANIFEST_FILE="${ORION_MANIFEST_FILE:-}"
 OUT_PATH=""
 ARTIFACT="pkg"
 DO_INSTALL=0
@@ -72,7 +72,7 @@ elif [[ -n "$MANIFEST_URL" ]]; then
 else
   [[ "$QUIET" -eq 1 ]] || echo "▸ Manifest API: $API_BASE/v1/releases/latest"
   curl -fsSL "$API_BASE/v1/releases/latest" -o "$TMP_JSON" || {
-    echo "✗ Kon manifest niet laden. Zet NEBULA_MANIFEST_URL of start de API (backend)." >&2
+    echo "✗ Kon manifest niet laden. Zet ORION_MANIFEST_URL of start de API (backend)." >&2
     exit 1
   }
 fi
@@ -89,11 +89,11 @@ else
 fi
 
 if [[ -z "$URL" || "$URL" == "null" ]]; then
-  echo "✗ Geen download-URL in manifest voor type '$ARTIFACT' (vul .url in nebula-release-manifest.json)." >&2
+  echo "✗ Geen download-URL in manifest voor type '$ARTIFACT' (vul .url in orion-release-manifest.json)." >&2
   exit 1
 fi
 
-[[ -n "$FNAME" && "$FNAME" != "null" ]] || FNAME="Nebula-download.${ARTIFACT}"
+[[ -n "$FNAME" && "$FNAME" != "null" ]] || FNAME="Orion-download.${ARTIFACT}"
 [[ -z "$OUT_PATH" ]] && OUT_PATH="./$FNAME"
 
 [[ "$QUIET" -eq 1 ]] || echo "▸ Download: $URL"

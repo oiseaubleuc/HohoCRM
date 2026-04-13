@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Nebula — Downloads (macOS)</title>
-  <meta name="description" content="Download Nebula voor macOS: .pkg installer, .dmg of native app zip." />
-  <link rel="icon" href="/nebula-logo.png" type="image/png" />
+  <title>Orion — Downloads (macOS)</title>
+  <meta name="description" content="Download Orion voor macOS: .pkg installer, .dmg of native app zip." />
+  <link rel="icon" href="/orion-logo.png" type="image/png" />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
   <style>
     :root { --bg:#06060a; --surface:#0b0d12; --border:#1c2230; --accent:#5eb5ff; --accent2:#9b7cff; --text:#e8eaf4; --muted:#8b92a8; --ok:#3ecf8e; }
@@ -30,20 +30,20 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>Nebula — macOS downloads</h1>
+    <h1>Orion — macOS downloads</h1>
     <p class="sub">Installeer de native app via <strong>.pkg</strong> (aanbevolen) of open de <strong>.dmg</strong>. Manifest: <code id="mf">…</code></p>
     <div id="cards"></div>
     <p class="err" id="err" hidden></p>
     <footer>
-      CLI: <code>./scripts/download-nebula-pkg.sh -a https://jouw-api</code> of
-      <code>node scripts/download-nebula-pkg.mjs --manifest …</code><br />
+      CLI: <code>./scripts/download-orion-pkg.sh -a https://jouw-api</code> of
+      <code>node scripts/download-orion-pkg.mjs --manifest …</code><br />
       API: <code>GET /v1/releases/latest</code> — zelfde JSON als dit manifest.
     </footer>
   </div>
   <script>
     (function () {
       var params = new URLSearchParams(location.search);
-      var manifestUrl = params.get('manifest') || '/releases/nebula-release-manifest.json';
+      var manifestUrl = params.get('manifest') || '/releases/orion-release-manifest.json';
       document.getElementById('mf').textContent = manifestUrl;
 
       function fmtBytes(n) {

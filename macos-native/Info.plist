@@ -5,15 +5,15 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>nl</string>
 	<key>CFBundleExecutable</key>
-	<string>HohohSolutionsCRMNative</string>
+	<string>OrionNative</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.hohohsolutions.crm.native</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Nebula</string>
+	<string>Orion</string>
 	<key>CFBundleDisplayName</key>
-	<string>Nebula</string>
+	<string>Orion</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundlePackageType</key>

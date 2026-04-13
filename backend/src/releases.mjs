@@ -1,6 +1,6 @@
 /**
- * Laadt het Nebula release-manifest (macOS .pkg / .dmg / zip) voor SaaS-downloads.
- * Standaard: webapp/public/releases/nebula-release-manifest.json in de monorepo.
+ * Laadt het Orion release-manifest (macOS .pkg / .dmg / zip) voor SaaS-downloads.
+ * Standaard: webapp/public/releases/orion-release-manifest.json in de monorepo.
  */
 import fs from 'fs';
 import { dirname, join } from 'path';
@@ -10,7 +10,7 @@ import { getReleaseManifestPatch } from './platformConfig.mjs';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 function defaultManifestPath() {
-  return join(__dirname, '../../webapp/public/releases/nebula-release-manifest.json');
+  return join(__dirname, '../../webapp/public/releases/orion-release-manifest.json');
 }
 
 export function resolveManifestPath() {

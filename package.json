@@ -1,10 +1,10 @@
 {
-  "name": "nebula-platform",
+  "name": "orion-platform",
   "private": true,
-  "description": "Nebula by HohohSolutions — Netlify functions & monorepo root",
+  "description": "Orion Platform — monorepo (webapp, native, backend, Netlify)",
   "scripts": {
-    "download-pkg": "bash scripts/download-nebula-pkg.sh",
-    "download-pkg:node": "node scripts/download-nebula-pkg.mjs",
+    "download-pkg": "bash scripts/download-orion-pkg.sh",
+    "download-pkg:node": "node scripts/download-orion-pkg.mjs",
     "fill-manifest": "bash scripts/fill-release-manifest.sh"
   },
   "dependencies": {

@@ -1,10 +1,10 @@
 /**
- * PDF-factuur (A4) — Nebula layout, EPC-QR voor banking apps.
- * Branding: overschrijf via localStorage `nebula_invoice_branding` (JSON); legacy `hohoh_invoice_branding` wordt nog gelezen.
+ * PDF-factuur (A4) — Orion layout, EPC-QR voor banking apps.
+ * Branding: localStorage `orion_invoice_branding` (JSON); legacy `nebula_invoice_branding` / `hohoh_invoice_branding` worden nog gelezen.
  */
 (function () {
   const DEFAULT_BRANDING = {
-    companyName: 'HohohSolutions',
+    companyName: 'HohoSolutions',
     addressLine: 'Koloniënstraat 11, 1000 Brussel, België',
     vat: 'BE1031192548',
     accountHolder: 'Houdaifa Hamouchi',
@@ -14,12 +14,13 @@
     phone: '+32451015476',
     legalNote0Btw: 'Bijzondere vrijstellingsregeling kleine ondernemingen - btw niet van toepassing.',
     /** Pad relatief aan webroot (Vite public → dist root), of volledige URL / data-URL */
-    logoPath: '/nebula-logo.png',
+    logoPath: '/orion-logo.png',
   };
 
   function getBranding() {
     try {
       const raw =
+        localStorage.getItem('orion_invoice_branding') ||
         localStorage.getItem('nebula_invoice_branding') ||
         localStorage.getItem('hohoh_invoice_branding');
       if (raw) return { ...DEFAULT_BRANDING, ...JSON.parse(raw) };
@@ -59,8 +60,8 @@
   }
 
   function invoiceLogoSrc(b) {
-    let p = (b && b.logoPath != null) ? String(b.logoPath).trim() : '/nebula-logo.png';
-    if (p === '/invoice-logo.png') p = '/nebula-logo.png';
+    let p = (b && b.logoPath != null) ? String(b.logoPath).trim() : '/orion-logo.png';
+    if (p === '/invoice-logo.png' || p === '/nebula-logo.png') p = '/orion-logo.png';
     if (!p) return logoDataUriFallback();
     if (p.startsWith('data:') || /^https?:\/\//i.test(p)) return p;
     return p;
@@ -92,7 +93,7 @@
   }
 
   window.downloadFactuurPdf = function downloadFactuurPdf(factuurId) {
-    const db = window.__NEBULA_DB__ || window.__HOHOH_DB__;
+    const db = window.__ORION_DB__ || window.__HOHOH_DB__;
     if (!db || !db.facturen) {
       if (typeof toast === 'function') toast('❌ Geen factuurgegevens');
       return;

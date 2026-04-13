@@ -1,5 +1,5 @@
 /**
- * Nebula API — fundamentserver (Express).
+ * Orion API — fundamentserver (Express).
  * Start: cd backend && npm install && cp .env.example .env && npm start
  * Database: optioneel; zonder DATABASE_URL draait alleen health + stubs.
  */
@@ -21,6 +21,7 @@ import {
   sanitizeErrorForClient,
   manifestErrorPayload,
 } from './security.mjs';
+import { appApiRouter } from './appApi.mjs';
 
 const app = express();
 app.disable('x-powered-by');
@@ -55,10 +56,18 @@ const pool = process.env.DATABASE_URL
 const limitHealth = rateLimit({ windowMs: RL_PUBLIC_MS, max: Number(process.env.RATE_LIMIT_HEALTH_MAX || 300), keyPrefix: 'health' });
 const limitPublic = rateLimit({ windowMs: RL_PUBLIC_MS, max: RL_PUBLIC_MAX, keyPrefix: 'api' });
 
+app.get('/', limitPublic, (_req, res) => {
+  res.json({
+    ok: true,
+    message: 'Orion API — geen webpagina op /. Gebruik onderstaande paden.',
+    paths: { health: '/health', meta: '/v1/meta', releases: '/v1/releases/latest' },
+  });
+});
+
 app.get('/health', limitHealth, (_req, res) => {
   res.json({
     ok: true,
-    product: 'Nebula',
+    product: 'Orion',
     vendor: 'HohohSolutions',
     db: pool ? 'configured' : 'disabled',
     time: new Date().toISOString(),
@@ -67,7 +76,7 @@ app.get('/health', limitHealth, (_req, res) => {
 
 app.get('/v1/meta', limitPublic, (_req, res) => {
   res.json({
-    name: 'Nebula',
+    name: 'Orion',
     tagline: 'Intelligence for modern operations',
     version: '0.1.0',
     capabilities: [
@@ -77,6 +86,7 @@ app.get('/v1/meta', limitPublic, (_req, res) => {
       'releases',
       'public_settings',
       'admin_platform_config',
+      'app_api_read',
     ],
   });
 });
@@ -126,10 +136,13 @@ app.options('/v1/releases/latest', corsReleases, (_req, res) => {
   res.status(204).end();
 });
 
+/** Next.js orion-web: data per tenant (Auth.js session; BFF-headers naar /v1/app) */
+app.use('/v1/app', limitPublic, appApiRouter);
+
 app.post('/v1/auth/register', limitPublic, (_req, res) => {
   res.status(501).json({
     error: 'not_implemented',
-    message: 'Registratie komt in volgende iteratie — gebruik nu de lokale Nebula webapp.',
+    message: 'Registratie komt in volgende iteratie — gebruik nu de lokale Orion webapp.',
   });
 });
 
@@ -167,5 +180,5 @@ app.listen(PORT, HOST, () => {
   if (isProd && pool && !process.env.INTERNAL_API_KEY?.trim()) {
     console.warn('[security] DATABASE_URL actief maar INTERNAL_API_KEY ontbreekt — GET /v1/tenants is publiek bereikbaar.');
   }
-  console.log(`Nebula API listening on http://${HOST}:${PORT}`);
+  console.log(`Orion API listening on http://${HOST}:${PORT}`);
 });

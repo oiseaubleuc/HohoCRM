@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Nebula — cross-platform CLI: download .pkg / .dmg / zip via release-manifest (zelfde als SaaS API).
- * Gebruik: node scripts/download-nebula-pkg.mjs [--api URL] [--manifest URL] [--file path] [--type pkg|dmg|nativeZip] [-o out]
+ * Orion — cross-platform CLI: download .pkg / .dmg / zip via release-manifest (zelfde als SaaS API).
+ * Gebruik: node scripts/download-orion-pkg.mjs [--api URL] [--manifest URL] [--file path] [--type pkg|dmg|nativeZip] [-o out]
  */
 import { createHash } from 'crypto';
 import { createWriteStream, readFileSync, existsSync } from 'fs';
@@ -15,9 +15,9 @@ const ROOT = join(__dirname, '..');
 function parseArgs() {
   const a = process.argv.slice(2);
   const o = {
-    api: process.env.NEBULA_API_BASE || 'http://127.0.0.1:4000',
-    manifest: process.env.NEBULA_MANIFEST_URL || '',
-    file: process.env.NEBULA_MANIFEST_FILE || '',
+    api: process.env.ORION_API_BASE || 'http://127.0.0.1:4000',
+    manifest: process.env.ORION_MANIFEST_URL || '',
+    file: process.env.ORION_MANIFEST_FILE || '',
     type: 'pkg',
     out: '',
     install: false,
@@ -32,10 +32,10 @@ function parseArgs() {
     else if (a[i] === '--install') o.install = true;
     else if (a[i] === '--no-hash') o.skipHash = true;
     else if (a[i] === '-h' || a[i] === '--help') {
-      console.log(`Usage: node scripts/download-nebula-pkg.mjs [options]
-  --api URL       API base (default NEBULA_API_BASE or http://127.0.0.1:4000)
+      console.log(`Usage: node scripts/download-orion-pkg.mjs [options]
+  --api URL       API base (default ORION_API_BASE or http://127.0.0.1:4000)
   --manifest URL  Direct manifest JSON URL
-  --file PATH     Local manifest (default repo: ${join(ROOT, 'webapp/public/releases/nebula-release-manifest.json')})
+  --file PATH     Local manifest (default repo: ${join(ROOT, 'webapp/public/releases/orion-release-manifest.json')})
   --type pkg|dmg|nativeZip
   -o PATH         Output file
   --install       macOS: open .pkg/.dmg after download
@@ -82,10 +82,10 @@ async function main() {
 
   const block = data[opt.type];
   if (!block?.url) {
-    throw new Error(`No ${opt.type}.url in manifest — fill nebula-release-manifest.json`);
+    throw new Error(`No ${opt.type}.url in manifest — fill webapp/public/releases/orion-release-manifest.json`);
   }
 
-  const fname = block.filename || `nebula.${opt.type === 'nativeZip' ? 'zip' : opt.type}`;
+  const fname = block.filename || `orion.${opt.type === 'nativeZip' ? 'zip' : opt.type}`;
   const out = opt.out || join(process.cwd(), fname);
 
   console.error('→', block.url);

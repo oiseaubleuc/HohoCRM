@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-APP_NAME="Nebula Native.app"
+APP_NAME="Orion Native.app"
 mkdir -p "$ROOT/artifacts"
 APP_OUT="$ROOT/artifacts/$APP_NAME"
 
@@ -23,8 +23,8 @@ fi
 echo "▸ App icon..."
 if [ -s "$ROOT/macos-native/AppIcon.icns" ] && [ "${HOHOH_FORCE_ICON:-0}" != "1" ]; then
   echo "▸ AppIcon.icns bestaat — overslaan (HOHOH_FORCE_ICON=1 om opnieuw te genereren)"
-elif [ -f "$ROOT/webapp/public/nebula-logo.png" ]; then
-  bash "$ROOT/tools/icns_from_png.sh" "$ROOT/webapp/public/nebula-logo.png" "$ROOT/macos-native/AppIcon.icns"
+elif [ -f "$ROOT/webapp/public/orion-logo.png" ]; then
+  bash "$ROOT/tools/icns_from_png.sh" "$ROOT/webapp/public/orion-logo.png" "$ROOT/macos-native/AppIcon.icns"
 else
   python3 "$ROOT/tools/generate_icon.py" "$ROOT/macos-native/AppIcon.icns"
 fi
@@ -46,22 +46,22 @@ if [ "${HOHOH_NO_SPARKLE:-0}" = "1" ]; then
 else
   BIN_DIR="$(swift build -c release --show-bin-path)"
 fi
-EXE="$BIN_DIR/HohohSolutionsCRMNative"
+EXE="$BIN_DIR/OrionNative"
 
 echo "▸ Assemblage ${APP_NAME}..."
 rm -rf "$APP_OUT"
 mkdir -p "$APP_OUT/Contents/MacOS"
 mkdir -p "$APP_OUT/Contents/Frameworks"
 mkdir -p "$APP_OUT/Contents/Resources/webroot"
-cp "$EXE" "$APP_OUT/Contents/MacOS/HohohSolutionsCRMNative"
-chmod +x "$APP_OUT/Contents/MacOS/HohohSolutionsCRMNative"
+cp "$EXE" "$APP_OUT/Contents/MacOS/OrionNative"
+chmod +x "$APP_OUT/Contents/MacOS/OrionNative"
 
 if [ "${HOHOH_NO_SPARKLE:-0}" != "1" ]; then
   SPARKLE_FW="$(cd "$ROOT/macos-native" && swift build -c release --show-bin-path)/Sparkle.framework"
   if [ -d "$SPARKLE_FW" ]; then
     echo "▸ Sparkle.framework inbundelen..."
     cp -R "$SPARKLE_FW" "$APP_OUT/Contents/Frameworks/"
-    install_name_tool -add_rpath @executable_path/../Frameworks "$APP_OUT/Contents/MacOS/HohohSolutionsCRMNative" 2>/dev/null || true
+    install_name_tool -add_rpath @executable_path/../Frameworks "$APP_OUT/Contents/MacOS/OrionNative" 2>/dev/null || true
   else
     echo "⚠ Sparkle.framework niet gevonden — voer eerst: cd macos-native && swift build -c release"
   fi
@@ -80,12 +80,12 @@ required_files=(
   "$WEBROOT/index.html"
   "$WEBROOT/crm-app.js"
   "$WEBROOT/invoice-pdf.js"
-  "$WEBROOT/nebula-logo.png"
+  "$WEBROOT/orion-logo.png"
 )
 for f in "${required_files[@]}"; do
   if [ ! -s "$f" ]; then
     echo "✗ Ontbreekt of leeg: $f"
-    echo "  Verwacht: webapp/dist bevat index.html + crm-app.js + invoice-pdf.js + nebula-logo.png."
+    echo "  Verwacht: webapp/dist bevat index.html + crm-app.js + invoice-pdf.js + orion-logo.png."
     echo "  Tip: draai in webapp/: npm run build (moet dist/ vullen)."
     exit 1
   fi
@@ -105,8 +105,8 @@ fi
 
 TEST_OUT="$ROOT/artifacts/Te-testen"
 mkdir -p "$TEST_OUT"
-rm -rf "$TEST_OUT/Nebula.app"
-cp -R "$APP_OUT" "$TEST_OUT/Nebula.app"
+rm -rf "$TEST_OUT/Orion.app"
+cp -R "$APP_OUT" "$TEST_OUT/Orion.app"
 
 echo ""
 echo "✅ Terminé : $APP_OUT"

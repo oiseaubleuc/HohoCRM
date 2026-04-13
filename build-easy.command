@@ -3,7 +3,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 clear
-printf "\nHohoCRM - Eenvoudige Builder\n"
+printf "\nOrion — eenvoudige build\n"
 printf "=================================\n"
 printf "Kies wat je wil maken:\n\n"
 printf "  1) Alleen webapp build (snel)\n"

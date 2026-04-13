@@ -6,12 +6,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta id="apple-status-style" name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta id="theme-color-meta" name="theme-color" content="#06060a">
-<meta name="application-name" content="Nebula">
-<meta name="description" content="Nebula by HohohSolutions — intelligence for modern operations. CRM, projecten, finance en automatisatie.">
+<meta name="application-name" content="Orion">
+<meta name="description" content="Orion ERP by HohoSolutions — klanten, voorraad, projecten, facturen en Peppol in één platform.">
 <script>
 (function () {
   try {
-    var v = localStorage.getItem('nebula-theme') || localStorage.getItem('hohoh-theme');
+    var v = localStorage.getItem('orion-theme') || localStorage.getItem('nebula-theme') || localStorage.getItem('hohoh-theme');
     var light = v === 'light' || (v !== 'dark' && window.matchMedia('(prefers-color-scheme: light)').matches);
     var h = document.documentElement;
     if (light) h.setAttribute('data-theme', 'light');
@@ -23,8 +23,8 @@
   } catch (e) {}
 })();
 </script>
-<title>Nebula — Command center for your business</title>
-<link rel="icon" href="/nebula-logo.png" type="image/png">
+<title>Orion — ERP voor je onderneming</title>
+<link rel="icon" href="/orion-logo.png" type="image/png">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -35,11 +35,11 @@
 <nav class="sidebar" id="sidebar">
   <div class="logo">
     <div class="logo-wordmark">
-      <img class="logo-mark" src="/nebula-logo.png" width="36" height="36" alt="" decoding="async" fetchpriority="high">
-      <span class="logo-nebula-name">Nebula</span>
+      <img class="logo-mark" src="/orion-logo.png" width="36" height="36" alt="" decoding="async" fetchpriority="high">
+      <span class="logo-orion-name">Orion</span>
     </div>
-    <div class="logo-by-hohoh">by HohohSolutions</div>
-    <div class="logo-tagline-pill">Intelligence for modern operations</div>
+    <div class="logo-by-hohoh">by HohoSolutions</div>
+    <div class="logo-tagline-pill">ERP · voorraad · facturatie · Peppol</div>
   </div>
   <div class="nav">
     <div class="nav-label">Overzicht</div>
@@ -73,6 +73,13 @@
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       Meeting Notities
       <span class="nav-badge" id="badge-meetings">0</span>
+    </button>
+
+    <div class="nav-label">Logistiek</div>
+    <button type="button" class="nav-item" data-page="artikelen" onclick="showPage('artikelen')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+      Artikelen &amp; voorraad
+      <span class="nav-badge" id="badge-artikelen">0</span>
     </button>
 
     <div class="nav-label">Financieel</div>
@@ -112,6 +119,11 @@
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       Mijn bedrijf
     </button>
+    <button type="button" class="nav-item" data-page="peppol" onclick="showPage('peppol')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M4 12h10"/><path d="M4 17h8"/><circle cx="18" cy="12" r="3"/></svg>
+      Peppol
+      <span class="nav-badge" id="badge-peppol">0</span>
+    </button>
 
     <div style="flex:1"></div>
     <div class="nav-label">Data</div>
@@ -122,6 +134,10 @@
     <button type="button" class="nav-item" onclick="importClick()">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       Importeer
+    </button>
+    <button type="button" class="nav-item" onclick="loadDemoData()">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3z"/><path d="M7 8h10"/><path d="M7 12h10"/><path d="M7 16h6"/></svg>
+      Laad voorbeelddata
     </button>
     <input type="file" id="import-input" accept=".json" style="display:none" onchange="importData(event)">
   </div>
@@ -172,16 +188,22 @@
         <div class="stat-value" id="stat-facturen">€0</div>
         <div class="stat-sub">onbetaalde facturen</div>
       </div>
+      <div class="stat-card">
+        <div class="stat-label">Artikelen</div>
+        <div class="stat-value" id="stat-artikelen">0</div>
+        <div class="stat-sub" id="stat-artikelen-sub">in catalogus</div>
+      </div>
     </div>
 
     <div class="ondernemer-hub">
       <div class="ondernemer-hub-inner">
         <div>
           <div class="ondernemer-hub-title">Jouw zaak onder controle</div>
-          <div class="ondernemer-hub-sub">Factuurkop, backup en overzicht — alles op één plek</div>
+          <div class="ondernemer-hub-sub">ERP-light: relaties, voorraad, facturen, Peppol — lokaal en offline-first</div>
         </div>
         <div class="ondernemer-hub-actions">
           <button type="button" class="btn btn-primary" onclick="showPage('onderneming')">Mijn bedrijf</button>
+          <button type="button" class="btn btn-ghost" onclick="showPage('artikelen')">Artikelen</button>
           <button type="button" class="btn btn-ghost" onclick="exportData()">JSON backup</button>
           <button type="button" class="btn btn-ghost" onclick="showPage('financieel')">Financieel</button>
           <button type="button" class="btn btn-ghost" onclick="showPage('facturen')">Facturen</button>
@@ -217,7 +239,7 @@
     <div class="section-head">
       <div>
         <div class="section-title">Klanten</div>
-        <div class="section-sub">Alle klanten en contactpersonen</div>
+        <div class="section-sub">Relaties en contactpersonen (verkoop)</div>
       </div>
     </div>
     <div class="table-wrap">
@@ -234,6 +256,33 @@
           </tr>
         </thead>
         <tbody id="klanten-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ARTIKELEN -->
+  <div class="page" id="page-artikelen">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Artikelen &amp; voorraad</div>
+        <div class="section-sub">Catalogus, eenheden en minimumvoorraad — basis voor uitbreiding naar inkoop en magazijn</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>SKU</th>
+            <th>Naam</th>
+            <th>Eenheid</th>
+            <th>Voorraad</th>
+            <th>Min.</th>
+            <th>Verkoopprijs</th>
+            <th>BTW</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="artikelen-tbody"></tbody>
       </table>
     </div>
   </div>
@@ -626,7 +675,7 @@
         <div class="form-group"><label>Telefoon</label><input id="br-phone" type="tel" autocomplete="tel"></div>
       </div>
       <div class="form-row">
-        <div class="form-group full"><label>Logo-pad of URL</label><input id="br-logoPath" type="text" placeholder="/nebula-logo.png of https://…" autocomplete="off"></div>
+        <div class="form-group full"><label>Logo-pad of URL</label><input id="br-logoPath" type="text" placeholder="/orion-logo.png of https://…" autocomplete="off"></div>
       </div>
       <div class="form-row">
         <div class="form-group full"><label>Juridische voetnoot (o.a. BTW-vrijstelling)</label><textarea id="br-legalNote0Btw" rows="3" placeholder="Bijzondere vrijstellingsregeling…"></textarea></div>
@@ -636,6 +685,53 @@
         <button type="button" class="btn btn-ghost" onclick="loadBrandingForm();toast('Velden vernieuwd')">Herladen</button>
         <span style="font-size:12px;color:var(--text3)">Tip: regelmatig <strong>Exporteer JSON</strong> in het menu voor een volledige back-up.</span>
       </div>
+    </div>
+  </div>
+
+  <!-- PEPPOL -->
+  <div class="page" id="page-peppol">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Peppol e-facturatie</div>
+        <div class="section-sub">Belgische B2B e-facturatie (EN 16931 / UBL 2.1) via Digiteal</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" class="btn btn-ghost" onclick="peppolTestConnection()">Test verbinding</button>
+        <button type="button" class="btn btn-primary" onclick="savePeppolSettings()">Opslaan instellingen</button>
+      </div>
+    </div>
+
+    <div class="stats-grid" style="margin-bottom:16px">
+      <div class="stat-card"><div class="stat-label">Peppol verzonden</div><div class="stat-value" id="peppol-stat-sent">0</div><div class="stat-sub">facturen via netwerk</div></div>
+      <div class="stat-card"><div class="stat-label">Mislukt</div><div class="stat-value" id="peppol-stat-failed" style="color:var(--red)">0</div><div class="stat-sub">laatste pogingen</div></div>
+      <div class="stat-card"><div class="stat-label">Inbox</div><div class="stat-value" id="peppol-stat-inbox">0</div><div class="stat-sub">ontvangen documenten</div></div>
+      <div class="stat-card"><div class="stat-label">Laatst gesynchroniseerd</div><div class="stat-value" id="peppol-stat-sync" style="font-size:16px">—</div><div class="stat-sub">inbox/payload</div></div>
+    </div>
+
+    <div class="table-wrap" style="padding:18px 20px;margin-bottom:14px">
+      <div class="section-title" style="font-size:14px;margin-bottom:12px">Digiteal instellingen</div>
+      <div class="form-row">
+        <div class="form-group"><label>API Key</label><input id="peppol-api-key" type="text" placeholder="Digiteal API key" autocomplete="off"></div>
+        <div class="form-group"><label>API Secret</label><input id="peppol-api-secret" type="password" placeholder="Digiteal API secret" autocomplete="off"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Omgeving</label><select id="peppol-sandbox"><option value="1">Sandbox (test)</option><option value="0">Productie</option></select></div>
+        <div class="form-group"><label>Webhook URL (optioneel)</label><input id="peppol-webhook" type="url" placeholder="https://.../peppol/webhook"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Eigen KBO-nummer</label><input id="peppol-own-kbo" type="text" placeholder="0123456789"></div>
+        <div class="form-group"><label>Contact e-mail</label><input id="peppol-own-email" type="email" placeholder="facturen@..."></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost" type="button" onclick="peppolRegisterSelf()">Registreer als Peppol deelnemer</button>
+        <button class="btn btn-ghost" type="button" onclick="peppolPullInbox()">Inbox verversen</button>
+        <span id="peppol-settings-status" style="font-size:12px;color:var(--text3);align-self:center"></span>
+      </div>
+    </div>
+
+    <div class="table-wrap" style="padding:18px 20px;margin-bottom:14px">
+      <div class="section-title" style="font-size:14px;margin-bottom:10px">Peppol inbox</div>
+      <div id="peppol-inbox-list"></div>
     </div>
   </div>
 
@@ -877,6 +973,44 @@
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="closeModal('modal-klant')">Annuleer</button>
       <button class="btn btn-primary" onclick="saveKlant()">Opslaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ARTIKEL -->
+<div class="modal-overlay" id="modal-artikel">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="modal-artikel-title">Nieuw artikel</div>
+      <button class="modal-close" onclick="closeModal('modal-artikel')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>SKU / code</label><input id="art-sku" placeholder="HW-001"></div>
+        <div class="form-group"><label>Naam</label><input id="art-naam" placeholder="Product of dienst"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Eenheid</label><input id="art-eenheid" placeholder="st, u, kg, pak..."></div>
+        <div class="form-group">
+          <label>BTW %</label>
+          <select id="art-btw">
+            <option value="21" selected>21%</option>
+            <option value="12">12%</option>
+            <option value="6">6%</option>
+            <option value="0">0%</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Voorraad</label><input id="art-voorraad" type="text" inputmode="decimal" placeholder="0"></div>
+        <div class="form-group"><label>Minimumvoorraad</label><input id="art-min" type="text" inputmode="decimal" placeholder="0"></div>
+      </div>
+      <div class="form-group full"><label>Verkoopprijs (excl. BTW)</label><input id="art-prijs" type="text" inputmode="decimal" placeholder="0,00"></div>
+      <div class="form-group full"><label>Omschrijving</label><textarea id="art-omsch" placeholder="Optioneel"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('modal-artikel')">Annuleer</button>
+      <button class="btn btn-primary" onclick="saveArtikel()">Opslaan</button>
     </div>
   </div>
 </div>
@@ -1344,6 +1478,8 @@
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
 <script defer src="/invoice-pdf.js"></script>
+<script defer src="/lib/orion-ubl-generator.js"></script>
+<script defer src="/lib/orion-peppol-client.js"></script>
 <script defer src="/crm-app.js?v=__CRM_APP_HASH__"></script>
 </body>
 </html>

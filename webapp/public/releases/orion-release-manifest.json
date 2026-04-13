@@ -1,0 +1,28 @@
+{
+  "product": "Orion",
+  "vendor": "HohohSolutions",
+  "channel": "stable",
+  "version": "1.0.0",
+  "build": 1,
+  "releasedAt": "2026-04-04T00:00:00.000Z",
+  "minimumMacOS": "13.0",
+  "releaseNotesUrl": "",
+  "pkg": {
+    "filename": "Orion-v1.0.0.pkg",
+    "url": "",
+    "bytes": null,
+    "sha256": ""
+  },
+  "dmg": {
+    "filename": "Orion-v1.0.0.dmg",
+    "url": "",
+    "bytes": null,
+    "sha256": ""
+  },
+  "nativeZip": {
+    "filename": "Orion-Native.app.zip",
+    "url": "",
+    "bytes": null,
+    "sha256": ""
+  }
+}
