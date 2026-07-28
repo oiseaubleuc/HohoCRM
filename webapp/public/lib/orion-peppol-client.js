@@ -21,6 +21,8 @@ class OrionPeppol {
    * @param {string} config.apiSecret - Digiteal API secret
    * @param {boolean} [config.sandbox=true] - true = test-omgeving, false = productie
    * @param {string} [config.webhookUrl] - URL waar Digiteal binnenkomende facturen naartoe stuurt
+   * @param {string} [config.proxyBase] - Orion API proxy (default: /v1/peppol) — vermijdt browser-CORS naar Digiteal
+   * @param {boolean} [config.direct=false] - true = rechtstreeks Digiteal (alleen als CORS toegelaten is)
    * @param {Function} [config.onLog] - Log callback (voor debugging)
    */
   constructor(config) {
@@ -29,13 +31,21 @@ class OrionPeppol {
     this.sandbox = config.sandbox !== false; // Default: sandbox
     this.webhookUrl = config.webhookUrl || null;
     this.onLog = config.onLog || console.log;
+    this.direct = config.direct === true;
 
-    // Endpoints
-    this.baseUrl = this.sandbox
+    const digitealBase = this.sandbox
       ? 'https://test.digiteal.eu/api/v1'
       : 'https://app.digiteal.eu/api/v1';
 
-    this._log(`OrionPeppol initialized (${this.sandbox ? 'SANDBOX' : 'PRODUCTIE'})`);
+    // Standaard via Orion-backend proxy (browser → 127.0.0.1:4000 → Digiteal)
+    const defaultProxy =
+      (typeof window !== 'undefined' && window.ORION_PEPPOL_PROXY) ||
+      '/v1/peppol';
+    this.baseUrl = this.direct
+      ? digitealBase
+      : String(config.proxyBase || defaultProxy).replace(/\/$/, '');
+
+    this._log(`OrionPeppol initialized (${this.sandbox ? 'SANDBOX' : 'PRODUCTIE'}${this.direct ? ', DIRECT' : ', PROXY'})`);
     this._log(`Base URL: ${this.baseUrl}`);
   }
 
@@ -56,6 +66,7 @@ class OrionPeppol {
 
     const headers = {
       'Authorization': this._authHeader(),
+      'X-Digiteal-Sandbox': this.sandbox ? '1' : '0',
     };
 
     if (contentType) {

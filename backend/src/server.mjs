@@ -22,6 +22,7 @@ import {
   manifestErrorPayload,
 } from './security.mjs';
 import { appApiRouter } from './appApi.mjs';
+import { peppolProxyRouter } from './peppolProxy.mjs';
 
 const app = express();
 app.disable('x-powered-by');
@@ -33,6 +34,12 @@ const RL_PUBLIC_MAX = Number(process.env.RATE_LIMIT_MAX || 120);
 
 app.use(securityHeaders);
 app.use(express.json({ limit: '2mb' }));
+app.use(
+  express.text({
+    type: ['application/xml', 'text/xml', 'application/ubl+xml'],
+    limit: '2mb',
+  })
+);
 
 function corsReleases(_req, res, next) {
   const origin = process.env.CORS_ORIGIN?.trim();
@@ -87,6 +94,7 @@ app.get('/v1/meta', limitPublic, (_req, res) => {
       'public_settings',
       'admin_platform_config',
       'app_api_read',
+      'peppol_proxy',
     ],
   });
 });
@@ -138,6 +146,15 @@ app.options('/v1/releases/latest', corsReleases, (_req, res) => {
 
 /** Next.js orion-web: data per tenant (Auth.js session; BFF-headers naar /v1/app) */
 app.use('/v1/app', limitPublic, appApiRouter);
+
+/**
+ * Digiteal Peppol proxy (CRM webapp → Orion → Digiteal).
+ * Pad na /v1/peppol wordt 1:1 doorgestuurd, bv. /v1/peppol/peppol/inbound-documents
+ */
+app.use('/v1/peppol', limitPublic, (req, _res, next) => {
+  if (typeof req.body === 'string') req.rawBody = req.body;
+  next();
+}, peppolProxyRouter);
 
 app.post('/v1/auth/register', limitPublic, (_req, res) => {
   res.status(501).json({

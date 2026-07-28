@@ -4108,12 +4108,27 @@ function validateFactuurForDefinitiveStatus(f) {
 async function peppolTestConnection() {
   const client = getPeppolClient();
   if (!client) { toast('❌ Vul eerst Digiteal API key/secret in'); return; }
-  const kbo = v('peppol-own-kbo').replace(/\D/g, '') || '0123456789';
-  const rs = await client.checkBelgianCompany(kbo, 'BE' + kbo);
-  const ok = !!(rs && (rs.success || rs.found !== undefined));
   const st = document.getElementById('peppol-settings-status');
-  if (st) st.textContent = ok ? '✓ verbinding OK' : '❌ verbinding mislukt';
-  toast(ok ? '✓ Peppol verbinding werkt' : '❌ Peppol test mislukt');
+  if (st) st.textContent = 'Bezig met testen…';
+  // Echte API-call (lijst outbound) — niet “found company”, anders false-positive bij CORS/netwerkfout
+  const probe = await client.getOutboundDocuments({ limit: '1' });
+  let ok = !!(probe && probe.success);
+  let detail = '';
+  if (!ok) {
+    const kbo = v('peppol-own-kbo').replace(/\D/g, '') || '0123456789';
+    const rs = await client.checkRecipient(`0208:${kbo}`);
+    // 401/403 = credentials; success of “lege” doc-types = API bereikbaar
+    ok = !!(rs && rs.success);
+    if (!ok && rs && (rs.status === 401 || rs.status === 403)) {
+      detail = ' (ongeldige API key/secret)';
+    } else if (!ok && probe && probe.error) {
+      detail = ` (${String(probe.error).slice(0, 120)})`;
+    } else if (!ok && rs && rs.error) {
+      detail = ` (${String(rs.error).slice(0, 120)})`;
+    }
+  }
+  if (st) st.textContent = ok ? '✓ verbinding OK (via Orion proxy)' : `❌ verbinding mislukt${detail}`;
+  toast(ok ? '✓ Peppol verbinding werkt' : `❌ Peppol test mislukt${detail}`);
 }
 
 async function peppolRegisterSelf() {

@@ -55,6 +55,21 @@ export default defineConfig({
   root: '.',
   publicDir: 'public',
   plugins: [publicHtmlIndexRewrite(), crmAppCacheBust()],
+  server: {
+    host: '127.0.0.1',
+    port: 5173,
+    proxy: {
+      // Digiteal Peppol via Orion API (anti-CORS)
+      '/v1/peppol': {
+        target: 'http://127.0.0.1:4000',
+        changeOrigin: true,
+      },
+      '/health': {
+        target: 'http://127.0.0.1:4000',
+        changeOrigin: true,
+      },
+    },
+  },
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
